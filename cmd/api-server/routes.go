@@ -24,6 +24,7 @@ func (app *application) routes() http.Handler {
 	mux.NotFound(app.notFound)
 	mux.MethodNotAllowed(app.methodNotAllowed)
 
+	mux.Use(app.traceID)
 	mux.Use(app.logAccess)
 	mux.Use(app.recoverPanic)
 
