@@ -21,6 +21,8 @@ const (
 )
 
 func (app *application) serveHTTP() error {
+	app.confiureSwagger()
+
 	srv := &http.Server{
 		Addr:         fmtHTTPAddr(app.config.httpHost, app.config.httpPort),
 		Handler:      app.routes(),

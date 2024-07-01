@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/protomem/time-tracker/internal/response"
+	"github.com/rs/cors"
 
 	"github.com/tomasen/realip"
 )
@@ -41,4 +42,8 @@ func (app *application) logAccess(next http.Handler) http.Handler {
 
 		app.logger.Info("access", userAttrs, requestAttrs, responseAttrs)
 	})
+}
+
+func (app *application) CORS(next http.Handler) http.Handler {
+	return cors.AllowAll().Handler(next)
 }

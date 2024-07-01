@@ -1,0 +1,21 @@
+info:
+  contact: {}
+paths:
+  /status:
+    get:
+      consumes:
+      - application/json
+      description: Check if the server is up and running
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Server Status
+      tags:
+      - api
+swagger: "2.0"

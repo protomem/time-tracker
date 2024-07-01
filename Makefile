@@ -60,7 +60,7 @@ run/live:
 	go run github.com/cosmtrek/air@v1.43.0 \
 		--build.cmd "make build" --build.bin "/tmp/bin/api-server -cfg .dev.env" --build.delay "100" \
 		--build.exclude_dir "" \
-		--build.include_ext "go, tpl, tmpl, html, css, scss, js, ts, sql, jpeg, jpg, gif, png, bmp, svg, webp, ico" \
+		--build.include_ext "go, tpl, tmpl, html, css, scss, js, ts, sql, jpeg, jpg, gif, png, bmp, svg, webp, ico, json, yaml, yml" \
 		--misc.clean_on_exit "true"
 
 
@@ -97,4 +97,13 @@ migrations/force:
 .PHONY: migrations/version
 migrations/version:
 	go run -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest -path=./assets/migrations -database="postgres://${DB_DSN}" version
+
+# ==================================================================================== #
+# GENERATORS
+# ==================================================================================== #
+
+## gen/api: generate swagger api documentation
+.PHONY: gen/api
+gen/api:
+	go run github.com/swaggo/swag/cmd/swag@latest init -dir ./cmd/api-server
 
