@@ -10,7 +10,12 @@ CREATE TABLE IF NOT EXISTS users (
     surname    TEXT NOT NULL CHECK (surname <> ''),
     patronymic TEXT          CHECK (patronymic <> ''),
 
-    address TEXT NOT NULL CHECK (address <> '')
+    passport_serie  INTEGER NOT NULL CHECK (passport_serie > 0),
+    passport_number INTEGER NOT NULL CHECK (passport_number > 0),
+
+    address TEXT NOT NULL CHECK (address <> ''),
+
+    CONSTRAINT unique_passport UNIQUE (passport_serie, passport_number)
 );
 
 CREATE TABLE IF NOT EXISTS tasks (
