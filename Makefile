@@ -88,7 +88,7 @@ run/mock-people-service:
 .PHONY: run/local/mock-people-service
 run/local/mock-people-service:
 	cd ./scripts/mock-people-service && \
-		npm run start
+		PORT=8081 npm run start
 
 
 # ==================================================================================== #

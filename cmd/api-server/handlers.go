@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	_defaultPage     = 0
+	_defaultPage     = 1
 	_defaultPageSize = 10
 )
 

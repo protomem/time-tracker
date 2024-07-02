@@ -59,6 +59,7 @@ func (dao *UserDAO) Find(ctx context.Context, filter FindUserFilter, opts FindOp
 		Where(equals).
 		Limit(uint64(opts.Limit)).
 		Offset(uint64(opts.Offset)).
+		OrderBy("created_at ASC").
 		ToSql()
 	if err != nil {
 		return nil, err
