@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/protomem/time-tracker/internal/model"
@@ -81,6 +82,60 @@ func (dao *UserDAO) Insert(ctx context.Context, dto InsertUserDTO) (model.ID, er
 	}
 
 	return id, nil
+}
+
+type UpdateUserDTO struct {
+	Name           *string
+	Surname        *string
+	Patronymic     *string
+	PassportSerie  *int
+	PassportNumber *int
+	Address        *string
+}
+
+func (dao *UserDAO) Update(ctx context.Context, id model.ID, dto UpdateUserDTO) error {
+	data := make(map[string]any, 7)
+	data["updated_at"] = time.Now()
+	if dto.Name != nil {
+		data["name"] = *dto.Name
+	}
+	if dto.Surname != nil {
+		data["surname"] = *dto.Surname
+	}
+	if dto.Patronymic != nil {
+		data["patronymic"] = *dto.Patronymic
+	}
+	if dto.PassportSerie != nil {
+		data["passport_serie"] = *dto.PassportSerie
+	}
+	if dto.PassportNumber != nil {
+		data["passport_number"] = *dto.PassportNumber
+	}
+	if dto.Address != nil {
+		data["address"] = *dto.Address
+	}
+
+	query, args, err := dao.Builder.
+		Update("users").
+		SetMap(data).
+		Where(squirrel.Eq{"id": id}).
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	dao.Logger.Debug("query", "sql", query, "args", args)
+
+	_, err = dao.ExecContext(ctx, query, args...)
+	if err != nil {
+		if IsUniqueViolation(err) {
+			return model.NewError("user", model.ErrExists)
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 func (dao *UserDAO) Delete(ctx context.Context, id model.ID) error {
