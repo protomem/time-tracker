@@ -28,9 +28,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     sess_end   TIMESTAMPTZ,
 
     task_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-
-    CONSTRAINT unique_session UNIQUE (task_id, user_id)
+    user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE
 );
 
 COMMIT;
