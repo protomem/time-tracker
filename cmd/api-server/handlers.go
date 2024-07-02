@@ -40,6 +40,7 @@ func (app *application) handleStatus(w http.ResponseWriter, r *http.Request) {
 // @Success 201 {object} main.responseAddUser
 // @Failure 400 {object} any "Bad request input"
 // @Failure 422 {object} validator.Validator "Invalid input data"
+// @Failure 409 {object} any "User already exists"
 // @Failure 500 {object} any "Internal server error"
 // @Router /users [post]
 func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {

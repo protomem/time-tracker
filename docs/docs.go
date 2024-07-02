@@ -78,6 +78,12 @@ const docTemplate = `{
                             "type": "object"
                         }
                     },
+                    "409": {
+                        "description": "User already exists",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
                     "422": {
                         "description": "Invalid input data",
                         "schema": {
