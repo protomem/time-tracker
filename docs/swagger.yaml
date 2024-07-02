@@ -71,6 +71,40 @@ definitions:
 info:
   contact: {}
 paths:
+  /sessions/{userId}/{taskId}:
+    post:
+      description: Start session
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad request input
+          schema:
+            type: object
+        "409":
+          description: Session already exists
+          schema:
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            type: object
+      summary: Start Session
+      tags:
+      - sessions
   /status:
     get:
       consumes:

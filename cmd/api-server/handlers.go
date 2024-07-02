@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/protomem/time-tracker/internal/ctxstore"
 	"github.com/protomem/time-tracker/internal/database"
@@ -368,4 +369,64 @@ func (app *application) handleDeleteUser(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// Handle Session Start
+//
+//	@Summary		Start Session
+//	@Description	Start session
+//	@Tags			sessions
+//	@Produce		json
+//	@Param			userId	path	int	true	"User ID"
+//	@Param			taskId	path	int	true	"Task ID"
+//	@Success		201
+//	@Failure		400	{object}	any	"Bad request input"
+//	@Failure		409	{object}	any	"Session already exists"
+//	@Failure		500	{object}	any	"Internal server error"
+//	@Router			/sessions/{userId}/{taskId} [post]
+func (app *application) handleSessionStart(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := app.logger.With(
+		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
+	)
+
+	userID, err := userIDFromRequest(r)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	taskID, err := taskIDFromRequest(r)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	dao := database.NewSessionDAO(logger, app.db)
+
+	if _, err := dao.GetByTaskAndUser(ctx, taskID, userID); err == nil {
+		app.errorMessage(w, r, http.StatusConflict, model.NewError("session", model.ErrExists).Error(), nil)
+		return
+	} else if !errors.Is(err, model.ErrNotFound) {
+		app.serverError(w, r, err)
+		return
+	}
+
+	insertDTO := database.InsertSessionDTO{
+		User:  userID,
+		Task:  taskID,
+		Begin: time.Now(),
+	}
+
+	if _, err := dao.Insert(ctx, insertDTO); err != nil {
+		if errors.Is(err, model.ErrExists) {
+			app.errorMessage(w, r, http.StatusConflict, err.Error(), nil)
+			return
+		}
+
+		app.serverError(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
 }

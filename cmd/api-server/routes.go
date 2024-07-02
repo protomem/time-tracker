@@ -37,6 +37,8 @@ func (app *application) routes() http.Handler {
 	mux.Put("/api/v1/users/{userId}", app.handleUpdateUser)
 	mux.Delete("/api/v1/users/{userId}", app.handleDeleteUser)
 
+	mux.Post("/api/v1/sessions/{userId}/{taskId}", app.handleSessionStart)
+
 	mux.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL(
 			"http://"+fmtHTTPAddr("localhost", app.config.httpPort)+"/swagger/doc.json",
