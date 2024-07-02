@@ -2,8 +2,6 @@ package database
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"log/slog"
 	"time"
 
@@ -100,7 +98,7 @@ func (dao *UserDAO) Get(ctx context.Context, id model.ID) (model.User, error) {
 	var user model.User
 	row := dao.QueryRowxContext(ctx, query, args...)
 	if err := row.StructScan(&user); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if IsNoRows(err) {
 			return model.User{}, model.NewError("user", model.ErrNotFound)
 		}
 
