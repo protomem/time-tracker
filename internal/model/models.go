@@ -23,8 +23,6 @@ type Task struct {
 	ID        ID        `json:"id" db:"id"`
 	CreatedAt time.Time `json:"createdAt" db:"created_at"`
 	UpdatedAt time.Time `json:"updatedAt" db:"updated_at"`
-
-	User ID `json:"userId" db:"user_id"`
 }
 
 type Session struct {
