@@ -185,8 +185,7 @@ func (dao *UserDAO) Update(ctx context.Context, id model.ID, dto UpdateUserDTO) 
 
 	dao.Logger.Debug("query", "sql", query, "args", args)
 
-	_, err = dao.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err = dao.ExecContext(ctx, query, args...); err != nil {
 		if IsUniqueViolation(err) {
 			return model.NewError("user", model.ErrExists)
 		}
@@ -208,8 +207,7 @@ func (dao *UserDAO) Delete(ctx context.Context, id model.ID) error {
 
 	dao.Logger.Debug("query", "sql", query, "args", args)
 
-	_, err = dao.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err = dao.ExecContext(ctx, query, args...); err != nil {
 		return err
 	}
 
