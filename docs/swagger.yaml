@@ -99,4 +99,33 @@ paths:
       summary: Add User
       tags:
       - users
+  /users/{userId}:
+    delete:
+      description: Delete user
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad request input
+          schema:
+            type: object
+        "404":
+          description: User not found
+          schema:
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            type: object
+      summary: Delete User
+      tags:
+      - users
 swagger: "2.0"

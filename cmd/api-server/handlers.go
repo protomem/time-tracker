@@ -157,3 +157,46 @@ func parsePassportNumber(s string) (passportNumber int, passportSerie int, err e
 
 	return
 }
+
+// Handle Delete User
+// @Summary Delete User
+// @Description Delete user
+// @Tags users
+// @Produce json
+// @Param userID path int true "User ID"
+// @Success 204
+// @Failure 400 {object} any "Bad request input"
+// @Failure 404 {object} any "User not found"
+// @Failure 500 {object} any "Internal server error"
+// @Router /users/{userId} [delete]
+func (app *application) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := app.logger.With(
+		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
+	)
+
+	userID, err := userIDFromRequest(r)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	dao := database.NewUserDAO(logger, app.db)
+
+	if _, err := dao.Get(ctx, userID); err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			app.errorMessage(w, r, http.StatusNotFound, err.Error(), nil)
+			return
+		}
+
+		app.serverError(w, r, err)
+		return
+	}
+
+	if err := dao.Delete(ctx, userID); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
