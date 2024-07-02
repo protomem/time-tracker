@@ -56,10 +56,11 @@ func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var v validator.Validator
-	v.Check(validator.NotBlank(input.PassportNumber), "Passport data cannot be blank")
+	v.CheckField(validator.NotBlank(input.PassportNumber), "passportNumber", "cannot be blank")
 
 	passportNumber, passportSerie, err := parsePassportNumber(input.PassportNumber)
 	if err != nil {
+		// TODO: bad request -> failed validation
 		app.badRequest(w, r, err)
 		return
 	}

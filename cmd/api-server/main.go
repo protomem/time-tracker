@@ -13,9 +13,6 @@ import (
 	"github.com/protomem/time-tracker/internal/version"
 )
 
-// TODO: Mock People Service
-// TODO: REST endpionts
-
 var _cfgFile = flag.String("cfg", "", "path to config file")
 
 func init() {
