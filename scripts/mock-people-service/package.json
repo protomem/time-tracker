@@ -1,0 +1,21 @@
+{
+  "name": "mock-people-service",
+  "version": "1.0.0",
+  "description": "Mock People service for testing Time tracker",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node main.js"
+  },
+  "keywords": [
+    "mock",
+    "testing",
+    "http-server"
+  ],
+  "author": "protomem",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
