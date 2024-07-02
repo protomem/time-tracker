@@ -38,6 +38,7 @@ func (app *application) routes() http.Handler {
 	mux.Delete("/api/v1/users/{userId}", app.handleDeleteUser)
 
 	mux.Post("/api/v1/sessions/{userId}/{taskId}", app.handleSessionStart)
+	mux.Delete("/api/v1/sessions/{userId}/{taskId}", app.handleSessionStop)
 
 	mux.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL(

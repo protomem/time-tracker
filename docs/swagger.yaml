@@ -72,6 +72,39 @@ info:
   contact: {}
 paths:
   /sessions/{userId}/{taskId}:
+    delete:
+      description: Stop session
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad request input
+          schema:
+            type: object
+        "404":
+          description: Session not found
+          schema:
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            type: object
+      summary: Stop Session
+      tags:
+      - sessions
     post:
       description: Start session
       parameters:

@@ -430,3 +430,57 @@ func (app *application) handleSessionStart(w http.ResponseWriter, r *http.Reques
 
 	w.WriteHeader(http.StatusCreated)
 }
+
+// Handle Session Stop
+//
+//	@Summary		Stop Session
+//	@Description	Stop session
+//	@Tags			sessions
+//	@Produce		json
+//	@Param			userId	path	int	true	"User ID"
+//	@Param			taskId	path	int	true	"Task ID"
+//	@Success		204
+//	@Failure		400	{object}	any	"Bad request input"
+//	@Failure		404	{object}	any	"Session not found"
+//	@Failure		500	{object}	any	"Internal server error"
+//	@Router			/sessions/{userId}/{taskId} [delete]
+func (app *application) handleSessionStop(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := app.logger.With(
+		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
+	)
+
+	userID, err := userIDFromRequest(r)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	taskID, err := taskIDFromRequest(r)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	dao := database.NewSessionDAO(logger, app.db)
+
+	session, err := dao.GetByTaskAndUser(ctx, taskID, userID)
+	if err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			app.errorMessage(w, r, http.StatusNotFound, err.Error(), nil)
+			return
+		}
+
+		app.serverError(w, r, err)
+		return
+	}
+
+	if err := dao.Update(ctx, session.ID, database.UpdateSessionDTO{
+		End: time.Now(),
+	}); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
