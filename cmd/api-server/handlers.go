@@ -17,13 +17,14 @@ import (
 )
 
 // Handle Status
-// @Summary Server Status
-// @Description Check if the server is up and running
-// @Tags api
-// @Accept json
-// @Produce json
-// @Success 200 {object} map[string]string
-// @Router /status [get]
+//
+//	@Summary		Server Status
+//	@Description	Check if the server is up and running
+//	@Tags			api
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	map[string]string
+//	@Router			/status [get]
 func (app *application) handleStatus(w http.ResponseWriter, r *http.Request) {
 	if err := response.JSON(w, http.StatusOK, response.JSONObject{"status": "OK"}); err != nil {
 		app.serverError(w, r, err)
@@ -31,18 +32,19 @@ func (app *application) handleStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handle Add User
-// @Summary Add User
-// @Description Add new user
-// @Tags users
-// @Accept json
-// @Produce json
-// @Param input body main.requestAddUser true "Passport serie and number"
-// @Success 201 {object} main.responseAddUser
-// @Failure 400 {object} any "Bad request input"
-// @Failure 422 {object} validator.Validator "Invalid input data"
-// @Failure 409 {object} any "User already exists"
-// @Failure 500 {object} any "Internal server error"
-// @Router /users [post]
+//
+//	@Summary		Add User
+//	@Description	Add new user
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		main.requestAddUser	true	"Passport serie and number"
+//	@Success		201		{object}	main.responseAddUser
+//	@Failure		400		{object}	any					"Bad request input"
+//	@Failure		409		{object}	any					"User already exists"
+//	@Failure		422		{object}	validator.Validator	"Invalid input data"
+//	@Failure		500		{object}	any					"Internal server error"
+//	@Router			/users [post]
 func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := app.logger.With(
@@ -159,17 +161,113 @@ func parsePassportNumber(s string) (passportNumber int, passportSerie int, err e
 	return
 }
 
+// Handle Update User
+//
+//	@Summary		Update user
+//	@Description	Update user
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			userId	path		int					true	"User ID"
+//	@Param			input	body		requestUpdateUser	true	"New user data"
+//	@Success		200		{object}	responseUpdateUser
+//	@Failure		400		{object}	any					"Bad request"
+//	@Failure		404		{object}	any					"User not found"
+//	@Failure		409		{object}	any					"User already exists"
+//	@Failure		422		{object}	validator.Validator	"Invalid input data"
+//	@Failure		500		{object}	any					"Internal server error"
+//	@Router			/users/{userId} [put]
+func (app *application) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := app.logger.With(
+		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
+	)
+
+	userID, err := userIDFromRequest(r)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	var input requestUpdateUser
+	err = request.DecodeJSON(w, r, &input)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	var v validator.Validator
+	// TODO: Add more validation rules
+
+	// TODO: Add better error messages
+	if input.PassportSerie != nil {
+		v.CheckField(validator.DigitsInNumber(*input.PassportSerie, 4), "passportSerie", "is not valid")
+	}
+	if input.PassportNumber != nil {
+		v.CheckField(validator.DigitsInNumber(*input.PassportNumber, 6), "passportNumber", "is not valid")
+	}
+
+	if v.HasErrors() {
+		app.failedValidation(w, r, v)
+		return
+	}
+
+	dao := database.NewUserDAO(logger, app.db)
+
+	if _, err := dao.Get(ctx, userID); err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			app.errorMessage(w, r, http.StatusNotFound, err.Error(), nil)
+			return
+		}
+
+		app.serverError(w, r, err)
+		return
+	}
+
+	updateDTO := database.UpdateUserDTO(input)
+
+	if err := dao.Update(ctx, userID, updateDTO); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	user, err := dao.Get(ctx, userID)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	if err := response.JSON(w, http.StatusOK, responseUpdateUser{User: user}); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+}
+
+type requestUpdateUser struct {
+	Name           *string `json:"name"`
+	Surname        *string `json:"surname"`
+	Patronymic     *string `json:"patronymic"`
+	PassportSerie  *int    `json:"passportSerie"`
+	PassportNumber *int    `json:"passportNumber"`
+	Address        *string `json:"address"`
+}
+
+type responseUpdateUser struct {
+	User model.User `json:"user"`
+}
+
 // Handle Delete User
-// @Summary Delete User
-// @Description Delete user
-// @Tags users
-// @Produce json
-// @Param userID path int true "User ID"
-// @Success 204
-// @Failure 400 {object} any "Bad request input"
-// @Failure 404 {object} any "User not found"
-// @Failure 500 {object} any "Internal server error"
-// @Router /users/{userId} [delete]
+//
+//	@Summary		Delete User
+//	@Description	Delete user
+//	@Tags			users
+//	@Produce		json
+//	@Param			userId	path	int	true	"User ID"
+//	@Success		204
+//	@Failure		400	{object}	any	"Bad request input"
+//	@Failure		404	{object}	any	"User not found"
+//	@Failure		500	{object}	any	"Internal server error"
+//	@Router			/users/{userId} [delete]
 func (app *application) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := app.logger.With(

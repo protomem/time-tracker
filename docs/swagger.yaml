@@ -4,7 +4,27 @@ definitions:
       passportNumber:
         type: string
     type: object
+  main.requestUpdateUser:
+    properties:
+      address:
+        type: string
+      name:
+        type: string
+      passportNumber:
+        type: integer
+      passportSerie:
+        type: integer
+      patronymic:
+        type: string
+      surname:
+        type: string
+    type: object
   main.responseAddUser:
+    properties:
+      user:
+        $ref: '#/definitions/model.User'
+    type: object
+  main.responseUpdateUser:
     properties:
       user:
         $ref: '#/definitions/model.User'
@@ -105,7 +125,7 @@ paths:
       parameters:
       - description: User ID
         in: path
-        name: userID
+        name: userId
         required: true
         type: integer
       produces:
@@ -126,6 +146,52 @@ paths:
           schema:
             type: object
       summary: Delete User
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Update user
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      - description: New user data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/main.requestUpdateUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.responseUpdateUser'
+        "400":
+          description: Bad request
+          schema:
+            type: object
+        "404":
+          description: User not found
+          schema:
+            type: object
+        "409":
+          description: User already exists
+          schema:
+            type: object
+        "422":
+          description: Invalid input data
+          schema:
+            $ref: '#/definitions/validator.Validator'
+        "500":
+          description: Internal server error
+          schema:
+            type: object
+      summary: Update user
       tags:
       - users
 swagger: "2.0"
