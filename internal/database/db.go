@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/Masterminds/squirrel"
 	"github.com/protomem/time-tracker/assets"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -22,6 +23,7 @@ const (
 
 type DB struct {
 	*sqlx.DB
+	Builder squirrel.StatementBuilderType
 }
 
 func New(dsn string, automigrate bool) (*DB, error) {
@@ -30,7 +32,7 @@ func New(dsn string, automigrate bool) (*DB, error) {
 
 	dsn = dsn + "?sslmode=disable" // disable SSL
 
-	db, err := sqlx.ConnectContext(ctx, "postgres", "postgres://"+dsn)
+	db, err := sqlx.ConnectContext(ctx, _driverName, "postgres://"+dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -60,5 +62,8 @@ func New(dsn string, automigrate bool) (*DB, error) {
 		}
 	}
 
-	return &DB{db}, nil
+	return &DB{
+		DB:      db,
+		Builder: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar),
+	}, nil
 }
