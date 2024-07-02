@@ -24,6 +24,13 @@ definitions:
       user:
         $ref: '#/definitions/model.User'
     type: object
+  main.responseShowUsers:
+    properties:
+      users:
+        items:
+          $ref: '#/definitions/model.User'
+        type: array
+    type: object
   main.responseUpdateUser:
     properties:
       user:
@@ -82,6 +89,67 @@ paths:
       tags:
       - api
   /users:
+    get:
+      description: Show all users by filters with pagination
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        minimum: 1
+        name: pageSize
+        type: integer
+      - description: User name
+        in: query
+        name: name
+        type: string
+      - description: User surname
+        in: query
+        name: surname
+        type: string
+      - description: User patronymic
+        in: query
+        name: patronymic
+        type: string
+      - description: User address
+        in: query
+        name: address
+        type: string
+      - description: User passport serie
+        in: query
+        name: passportSerie
+        type: integer
+      - description: User passport number
+        in: query
+        name: passportNumber
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.responseShowUsers'
+        "400":
+          description: Bad request
+          schema:
+            type: object
+        "422":
+          description: Invalid input data
+          schema:
+            $ref: '#/definitions/validator.Validator'
+        "500":
+          description: Internal server error
+          schema:
+            type: object
+      summary: Show Users
+      tags:
+      - users
     post:
       consumes:
       - application/json

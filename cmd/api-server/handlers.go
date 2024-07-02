@@ -16,6 +16,11 @@ import (
 	"github.com/protomem/time-tracker/internal/validator"
 )
 
+const (
+	_defaultPage     = 0
+	_defaultPageSize = 10
+)
+
 // Handle Status
 //
 //	@Summary		Server Status
@@ -29,6 +34,73 @@ func (app *application) handleStatus(w http.ResponseWriter, r *http.Request) {
 	if err := response.JSON(w, http.StatusOK, response.JSONObject{"status": "OK"}); err != nil {
 		app.serverError(w, r, err)
 	}
+}
+
+// Handle Show Users
+//
+//	@Summary		Show Users
+//	@Description	Show all users by filters with pagination
+//	@Tags			users
+//	@Produce		json
+//	@Param			page			query		int		false	"Page number"	default(1)	minimum(1)
+//	@Param			pageSize		query		int		false	"Page size"		default(10)	minimum(1)
+//	@Param			name			query		string	false	"User name"
+//	@Param			surname			query		string	false	"User surname"
+//	@Param			patronymic		query		string	false	"User patronymic"
+//	@Param			address			query		string	false	"User address"
+//	@Param			passportSerie	query		int		false	"User passport serie"
+//	@Param			passportNumber	query		int		false	"User passport number"
+//	@Success		200				{object}	main.responseShowUsers
+//	@Failure		400				{object}	any					"Bad request"
+//	@Failure		422				{object}	validator.Validator	"Invalid input data"
+//	@Failure		500				{object}	any					"Internal server error"
+//	@Router			/users [get]
+func (app *application) handleShowUsers(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := app.logger.With(
+		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
+	)
+
+	// TODO: Add validation
+
+	page := defaultIntQueryParams(r, "page", _defaultPage)
+	pageSize := defaultIntQueryParams(r, "pageSize", _defaultPageSize)
+
+	opts := database.FindOptions{
+		Limit:  pageSize,
+		Offset: pageSize * (page - 1),
+	}
+
+	filter := database.FindUserFilter{
+		Name:           nullStringQueryParams(r, "name"),
+		Surname:        nullStringQueryParams(r, "surname"),
+		Patronymic:     nullStringQueryParams(r, "patronymic"),
+		PassportSerie:  nullIntQueryParams(r, "passportSerie"),
+		PassportNumber: nullIntQueryParams(r, "passportNumber"),
+		Address:        nullStringQueryParams(r, "address"),
+	}
+
+	logger.Debug("show users", "filter", filter, "opts", opts)
+
+	dao := database.NewUserDAO(logger, app.db)
+	users, err := dao.Find(ctx, filter, opts)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	// so that null is not output
+	if users == nil {
+		users = make([]model.User, 0)
+	}
+
+	if err := response.JSON(w, http.StatusOK, responseShowUsers{Users: users}); err != nil {
+		app.serverError(w, r, err)
+	}
+}
+
+type responseShowUsers struct {
+	Users []model.User `json:"users"`
 }
 
 // Handle Add User
@@ -133,7 +205,6 @@ func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 
 	if err := response.JSON(w, http.StatusCreated, responseAddUser{User: user}); err != nil {
 		app.serverError(w, r, err)
-		return
 	}
 }
 
@@ -239,7 +310,6 @@ func (app *application) handleUpdateUser(w http.ResponseWriter, r *http.Request)
 
 	if err := response.JSON(w, http.StatusOK, responseUpdateUser{User: user}); err != nil {
 		app.serverError(w, r, err)
-		return
 	}
 }
 

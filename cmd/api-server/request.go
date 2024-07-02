@@ -12,3 +12,47 @@ func userIDFromRequest(r *http.Request) (model.ID, error) {
 	id, err := strconv.Atoi(chi.URLParam(r, "userId"))
 	return model.ID(id), err
 }
+
+func defaultStringQueryParams(r *http.Request, key string, def string) string {
+	val, ok := r.URL.Query().Get(key), r.URL.Query().Has(key)
+	if !ok {
+		return def
+	}
+	return val
+}
+
+func defaultIntQueryParams(r *http.Request, key string, def int) int {
+	val, ok := r.URL.Query().Get(key), r.URL.Query().Has(key)
+	if !ok {
+		return def
+	}
+	i, err := strconv.Atoi(val)
+	if err != nil {
+		return def
+	}
+	return i
+}
+
+func nullStringQueryParams(r *http.Request, key string) *string {
+	ref := new(string)
+	val, ok := r.URL.Query().Get(key), r.URL.Query().Has(key)
+	if !ok {
+		return nil
+	}
+	*ref = val
+	return ref
+}
+
+func nullIntQueryParams(r *http.Request, key string) *int {
+	ref := new(int)
+	val, ok := r.URL.Query().Get(key), r.URL.Query().Has(key)
+	if !ok {
+		return nil
+	}
+	intVal, err := strconv.Atoi(val)
+	if err != nil {
+		return nil
+	}
+	*ref = intVal
+	return ref
+}

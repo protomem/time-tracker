@@ -32,6 +32,7 @@ func (app *application) routes() http.Handler {
 
 	mux.Get("/api/v1/status", app.handleStatus)
 
+	mux.Get("/api/v1/users", app.handleShowUsers)
 	mux.Post("/api/v1/users", app.handleAddUser)
 	mux.Put("/api/v1/users/{userId}", app.handleUpdateUser)
 	mux.Delete("/api/v1/users/{userId}", app.handleDeleteUser)
