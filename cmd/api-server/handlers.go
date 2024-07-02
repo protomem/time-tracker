@@ -112,6 +112,11 @@ func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := dao.Insert(ctx, insertDTO)
 	if err != nil {
+		if errors.Is(err, model.ErrExists) {
+			app.errorMessage(w, r, http.StatusConflict, err.Error(), nil)
+			return
+		}
+
 		app.serverError(w, r, err)
 		return
 	}

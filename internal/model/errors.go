@@ -12,5 +12,9 @@ var (
 )
 
 func NewError(model string, err error) error {
-	return fmt.Errorf("%s: %w", strings.ToLower(model), err)
+	return fmt.Errorf("%s: %w", capitalize(model), err)
+}
+
+func capitalize(s string) string {
+	return strings.ToUpper(s[:1]) + s[1:]
 }

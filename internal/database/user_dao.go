@@ -39,7 +39,7 @@ func (dao *UserDAO) Get(ctx context.Context, id model.ID) (model.User, error) {
 	row := dao.QueryRowxContext(ctx, query, args...)
 	if err := row.StructScan(&user); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return model.User{}, model.NewError("users", model.ErrNotFound)
+			return model.User{}, model.NewError("user", model.ErrNotFound)
 		}
 
 		return model.User{}, err
@@ -73,6 +73,10 @@ func (dao *UserDAO) Insert(ctx context.Context, dto InsertUserDTO) (model.ID, er
 	var id model.ID
 	row := dao.QueryRowxContext(ctx, query, args...)
 	if err := row.Scan(&id); err != nil {
+		if IsUniqueViolation(err) {
+			return 0, model.NewError("user", model.ErrExists)
+		}
+
 		return 0, err
 	}
 
