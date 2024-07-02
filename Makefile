@@ -18,6 +18,7 @@ help:
 tidy:
 	go fmt ./...
 	go mod tidy -v
+	swag fmt
 
 ## audit: run quality control checks
 .PHONY: audit

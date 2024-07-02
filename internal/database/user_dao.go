@@ -23,6 +23,66 @@ func NewUserDAO(logger *slog.Logger, db *DB) *UserDAO {
 	}
 }
 
+type FindUserFilter struct {
+	Name           *string
+	Surname        *string
+	Patronymic     *string
+	PassportSerie  *int
+	PassportNumber *int
+	Address        *string
+}
+
+func (dao *UserDAO) Find(ctx context.Context, filter FindUserFilter, opts FindOptions) ([]model.User, error) {
+	equals := squirrel.Eq{}
+	if filter.Name != nil {
+		equals["name"] = *filter.Name
+	}
+	if filter.Surname != nil {
+		equals["surname"] = *filter.Surname
+	}
+	if filter.Patronymic != nil {
+		equals["patronymic"] = *filter.Patronymic
+	}
+	if filter.PassportSerie != nil {
+		equals["passport_serie"] = *filter.PassportSerie
+	}
+	if filter.PassportNumber != nil {
+		equals["passport_number"] = *filter.PassportNumber
+	}
+	if filter.Address != nil {
+		equals["address"] = *filter.Address
+	}
+
+	query, args, err := dao.Builder.
+		Select("*").
+		From("users").
+		Where(equals).
+		Limit(uint64(opts.Limit)).
+		Offset(uint64(opts.Offset)).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	dao.Logger.Debug("query", "sql", query, "args", args)
+
+	rows, err := dao.QueryxContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	users := make([]model.User, 0, opts.Limit)
+	for rows.Next() {
+		var user model.User
+		if err := rows.StructScan(&user); err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
 func (dao *UserDAO) Get(ctx context.Context, id model.ID) (model.User, error) {
 	query, args, err := dao.Builder.
 		Select("*").
