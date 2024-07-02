@@ -19,15 +19,6 @@ type User struct {
 	Address string `json:"address" db:"address"`
 }
 
-type Task struct {
-	ID        ID        `json:"id" db:"id"`
-	CreatedAt time.Time `json:"createdAt" db:"created_at"`
-	UpdatedAt time.Time `json:"updatedAt" db:"updated_at"`
-
-	Title       string `json:"title" db:"title"`
-	Description string `json:"description" db:"description"`
-}
-
 type Session struct {
 	ID        ID        `json:"id" db:"id"`
 	CreatedAt time.Time `json:"createdAt" db:"created_at"`

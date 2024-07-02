@@ -18,16 +18,6 @@ CREATE TABLE IF NOT EXISTS users (
     CONSTRAINT unique_passport UNIQUE (passport_serie, passport_number)
 );
 
-CREATE TABLE IF NOT EXISTS tasks (
-    id SERIAL PRIMARY KEY,
-
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-
-    title       TEXT NOT NULL UNIQUE CHECK (title <> ''),
-    description TEXT NOT
-);
-
 CREATE TABLE IF NOT EXISTS sessions (
     id SERIAL PRIMARY KEY,
 
@@ -37,8 +27,10 @@ CREATE TABLE IF NOT EXISTS sessions (
     sess_begin TIMESTAMPTZ NOT NULL,
     sess_end   TIMESTAMPTZ,
 
+    task_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-    task_id INTEGER NOT NULL REFERENCES tasks (id) ON DELETE CASCADE
+
+    CONSTRAINT unique_session UNIQUE (task_id, user_id)
 );
 
 COMMIT;
