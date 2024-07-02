@@ -32,8 +32,8 @@ type Session struct {
 	CreatedAt time.Time `json:"createdAt" db:"created_at"`
 	UpdatedAt time.Time `json:"updatedAt" db:"updated_at"`
 
-	Begin time.Time  `json:"begin" db:"begin"`
-	End   *time.Time `json:"end,omitempty" db:"end"`
+	Begin time.Time  `json:"begin" db:"sess_begin"`
+	End   *time.Time `json:"end,omitempty" db:"sess_end"`
 
 	Task ID `json:"taskId" db:"task_id"`
 	User ID `json:"userId" db:"user_id"`
