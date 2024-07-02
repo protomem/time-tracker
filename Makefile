@@ -63,10 +63,32 @@ run/live:
 		--build.include_ext "go, tpl, tmpl, html, css, scss, js, ts, sql, jpeg, jpg, gif, png, bmp, svg, webp, ico, json, yaml, yml" \
 		--misc.clean_on_exit "true"
 
+## run/all: run all services in a docker container(docker compose)
+.PHONY: run/all
+run/all:
+	docker compose up -d --build
+
+## stop/all: stop all services in a docker container(docker compose)
+.PHONY: stop/all
+stop/all:
+	docker compose down
+
 ## run/db: run db(postgres) in a docker container(docker compose)
 .PHONY: run/db
 run/db:
 	docker compose up db -d
+
+## run/mock-people-service: run mock-people-service in a docker container(docker compose)
+.PHONY: run/mock-people-service
+run/mock-people-service:
+	docker compose up mock_people_service -d
+
+## run/local/mock-people-service: run mock-people-service
+.PHONY: run/local/mock-people-service
+run/local/mock-people-service:
+	cd ./scripts/mock-people-service && \
+		npm run start
+
 
 # ==================================================================================== #
 # SQL MIGRATIONS

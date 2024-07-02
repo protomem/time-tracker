@@ -25,6 +25,16 @@ services:
     networks:
       - app_net
 
+  mock_people_service:
+    build:
+      context: ./scripts/mock-people-service
+      dockerfile: Dockerfile
+    ports:
+      - "8081:3000"
+    restart: on-failure
+    networks:
+      - app_net
+
 volumes:
   db_data:
 
