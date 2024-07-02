@@ -21,12 +21,14 @@ func NewSessionDAO(logger *slog.Logger, db *DB) *SessionDAO {
 	}
 }
 
-func (dao *SessionDAO) GetByTaskAndUser(ctx context.Context, task, user model.ID) (model.Session, error) {
+func (dao *SessionDAO) LastByTaskAndUser(ctx context.Context, task, user model.ID) (model.Session, error) {
 	query, args, err := dao.Builder.
 		Select("*").
 		From("sessions").
 		Where(squirrel.Eq{"task_id": task}).
 		Where(squirrel.Eq{"user_id": user}).
+		OrderBy("sess_begin DESC").
+		Limit(1).
 		ToSql()
 	if err != nil {
 		return model.Session{}, err

@@ -17,7 +17,7 @@ const docTemplate = `{
     "paths": {
         "/sessions/{userId}/{taskId}": {
             "post": {
-                "description": "Start session",
+                "description": "Start new session",
                 "produces": [
                     "application/json"
                 ],

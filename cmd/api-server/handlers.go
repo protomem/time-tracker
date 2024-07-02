@@ -374,7 +374,7 @@ func (app *application) handleDeleteUser(w http.ResponseWriter, r *http.Request)
 // Handle Session Start
 //
 //	@Summary		Start Session
-//	@Description	Start session
+//	@Description	Start new session
 //	@Tags			sessions
 //	@Produce		json
 //	@Param			userId	path	int	true	"User ID"
@@ -404,11 +404,14 @@ func (app *application) handleSessionStart(w http.ResponseWriter, r *http.Reques
 
 	dao := database.NewSessionDAO(logger, app.db)
 
-	if _, err := dao.GetByTaskAndUser(ctx, taskID, userID); err == nil {
-		app.errorMessage(w, r, http.StatusConflict, model.NewError("session", model.ErrExists).Error(), nil)
-		return
-	} else if !errors.Is(err, model.ErrNotFound) {
+	session, err := dao.LastByTaskAndUser(ctx, taskID, userID)
+	if err != nil && !errors.Is(err, model.ErrNotFound) {
 		app.serverError(w, r, err)
+		return
+	}
+
+	if !errors.Is(err, model.ErrNotFound) && session.End == nil {
+		app.errorMessage(w, r, http.StatusConflict, model.NewError("session", model.ErrExists).Error(), nil)
 		return
 	}
 
@@ -464,7 +467,7 @@ func (app *application) handleSessionStop(w http.ResponseWriter, r *http.Request
 
 	dao := database.NewSessionDAO(logger, app.db)
 
-	session, err := dao.GetByTaskAndUser(ctx, taskID, userID)
+	session, err := dao.LastByTaskAndUser(ctx, taskID, userID)
 	if err != nil {
 		if errors.Is(err, model.ErrNotFound) {
 			app.errorMessage(w, r, http.StatusNotFound, err.Error(), nil)
@@ -472,6 +475,11 @@ func (app *application) handleSessionStop(w http.ResponseWriter, r *http.Request
 		}
 
 		app.serverError(w, r, err)
+		return
+	}
+
+	if session.End != nil {
+		app.errorMessage(w, r, http.StatusNotFound, model.NewError("session", model.ErrNotFound).Error(), nil)
 		return
 	}
 

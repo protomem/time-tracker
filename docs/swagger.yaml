@@ -106,7 +106,7 @@ paths:
       tags:
       - sessions
     post:
-      description: Start session
+      description: Start new session
       parameters:
       - description: User ID
         in: path
