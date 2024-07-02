@@ -3,6 +3,7 @@ package validator
 import (
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -83,4 +84,10 @@ func IsURL(value string) bool {
 	}
 
 	return u.Scheme != "" && u.Host != ""
+}
+
+func DigitsInNumber(num int, n int) bool {
+	// TODO: better comparison
+	numStr := strconv.Itoa(num)
+	return len(numStr) == n
 }
