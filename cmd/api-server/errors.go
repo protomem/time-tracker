@@ -7,6 +7,7 @@ import (
 	"runtime/debug"
 	"strings"
 
+	"github.com/protomem/time-tracker/internal/ctxstore"
 	"github.com/protomem/time-tracker/internal/response"
 	"github.com/protomem/time-tracker/internal/validator"
 )
@@ -17,9 +18,10 @@ func (app *application) reportServerError(r *http.Request, err error) {
 		method  = r.Method
 		url     = r.URL.String()
 		trace   = string(debug.Stack())
+		tid     = ctxstore.MustFrom[string](r.Context(), _traceIDKey)
 	)
 
-	requestAttrs := slog.Group("request", "method", method, "url", url)
+	requestAttrs := slog.Group("request", "method", method, "url", url, _traceIDKey.String(), tid)
 	app.logger.Error(message, requestAttrs, "trace", trace)
 }
 
