@@ -82,3 +82,22 @@ func (dao *UserDAO) Insert(ctx context.Context, dto InsertUserDTO) (model.ID, er
 
 	return id, nil
 }
+
+func (dao *UserDAO) Delete(ctx context.Context, id model.ID) error {
+	query, args, err := dao.Builder.
+		Delete("users").
+		Where(squirrel.Eq{"id": id}).
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	dao.Logger.Debug("query", "sql", query, "args", args)
+
+	_, err = dao.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
