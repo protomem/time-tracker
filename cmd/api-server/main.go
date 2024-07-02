@@ -13,6 +13,9 @@ import (
 	"github.com/protomem/time-tracker/internal/version"
 )
 
+// TODO: Mock People Service
+// TODO: REST endpionts
+
 var _cfgFile = flag.String("cfg", "", "path to config file")
 
 func init() {
@@ -37,6 +40,9 @@ type config struct {
 		dsn         string
 		automigrate bool
 	}
+	peopleServ struct {
+		serverURL string
+	}
 }
 
 type application struct {
@@ -60,6 +66,7 @@ func run(logger *slog.Logger) error {
 	cfg.httpPort = env.GetInt("HTTP_PORT", 8080)
 	cfg.db.dsn = env.GetString("DB_DSN", "postgres:postgres@localhost:5432/postgres")
 	cfg.db.automigrate = env.GetBool("DB_AUTOMIGRATE", true)
+	cfg.peopleServ.serverURL = env.GetString("PEOPLE_SERVICE_URL", "http://localhost:8081")
 
 	showVersion := flag.Bool("version", false, "display version and exit")
 

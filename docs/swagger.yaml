@@ -1,3 +1,46 @@
+definitions:
+  main.requestAddUser:
+    properties:
+      passportNumber:
+        type: string
+    type: object
+  main.responseAddUser:
+    properties:
+      user:
+        $ref: '#/definitions/model.User'
+    type: object
+  model.User:
+    properties:
+      address:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      passportSerie:
+        type: integer
+      passwortNumber:
+        type: integer
+      patronymic:
+        type: string
+      surname:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  validator.Validator:
+    properties:
+      errors:
+        items:
+          type: string
+        type: array
+      fieldErrors:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
 info:
   contact: {}
 paths:
@@ -18,4 +61,38 @@ paths:
       summary: Server Status
       tags:
       - api
+  /users:
+    post:
+      consumes:
+      - application/json
+      description: Add new user
+      parameters:
+      - description: Passport serie and number
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/main.requestAddUser'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/main.responseAddUser'
+        "400":
+          description: Bad request input
+          schema:
+            type: object
+        "422":
+          description: Invalid input data
+          schema:
+            $ref: '#/definitions/validator.Validator'
+        "500":
+          description: Internal server error
+          schema:
+            type: object
+      summary: Add User
+      tags:
+      - users
 swagger: "2.0"

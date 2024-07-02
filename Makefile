@@ -63,6 +63,10 @@ run/live:
 		--build.include_ext "go, tpl, tmpl, html, css, scss, js, ts, sql, jpeg, jpg, gif, png, bmp, svg, webp, ico, json, yaml, yml" \
 		--misc.clean_on_exit "true"
 
+## run/db: run db(postgres) in a docker container(docker compose)
+.PHONY: run/db
+run/db:
+	docker compose up db -d
 
 # ==================================================================================== #
 # SQL MIGRATIONS
@@ -105,5 +109,5 @@ migrations/version:
 ## gen/api: generate swagger api documentation
 .PHONY: gen/api
 gen/api:
-	go run github.com/swaggo/swag/cmd/swag@latest init -dir ./cmd/api-server
+	go run github.com/swaggo/swag/cmd/swag@latest init -dir ./cmd/api-server --parseDependency --parseInternal
 

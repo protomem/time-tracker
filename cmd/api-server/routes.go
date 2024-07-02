@@ -32,6 +32,8 @@ func (app *application) routes() http.Handler {
 
 	mux.Get("/api/v1/status", app.handleStatus)
 
+	mux.Post("/api/v1/users", app.handleAddUser)
+
 	mux.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL(
 			"http://"+fmtHTTPAddr("localhost", app.config.httpPort)+"/swagger/doc.json",
