@@ -22,7 +22,10 @@ CREATE TABLE IF NOT EXISTS tasks (
     id SERIAL PRIMARY KEY,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    title       TEXT NOT NULL UNIQUE CHECK (title <> ''),
+    description TEXT NOT
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
