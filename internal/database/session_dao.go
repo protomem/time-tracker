@@ -78,3 +78,28 @@ func (dao *SessionDAO) Insert(ctx context.Context, dto InsertSessionDTO) (model.
 
 	return id, nil
 }
+
+type UpdateSessionDTO struct {
+	End time.Time
+}
+
+func (dao *SessionDAO) Update(ctx context.Context, id model.ID, dto UpdateSessionDTO) error {
+	query, args, err := dao.Builder.
+		Update("sessions").
+		SetMap(map[string]any{
+			"sess_end": dto.End,
+		}).
+		Where(squirrel.Eq{"id": id}).
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	dao.Logger.Debug("query", "sql", query, "args", args)
+
+	if _, err = dao.ExecContext(ctx, query, args...); err != nil {
+		return err
+	}
+
+	return nil
+}
