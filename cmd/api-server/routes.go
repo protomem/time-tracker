@@ -37,7 +37,7 @@ func (app *application) routes() http.Handler {
 	mux.Put("/api/v1/users/{userId}", app.handleUpdateUser)
 	mux.Delete("/api/v1/users/{userId}", app.handleDeleteUser)
 
-	mux.Get("/api/v1/users/{userId}/stats", app.handleSessionStats)
+	mux.Get("/api/v1/users/{userId}/stats", app.handleUserStats)
 
 	mux.Post("/api/v1/sessions/{userId}/{taskId}", app.handleSessionStart)
 	mux.Delete("/api/v1/sessions/{userId}/{taskId}", app.handleSessionStop)

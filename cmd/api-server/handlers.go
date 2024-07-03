@@ -249,7 +249,7 @@ func parsePassportNumber(s string) (passportNumber int, passportSerie int, err e
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
-//	@Param			userId	path		int					true	"User ID"
+//	@Param			userId	path		int						true	"User ID"
 //	@Param			input	body		main.requestUpdateUser	true	"New user data"
 //	@Success		200		{object}	main.responseUpdateUser
 //	@Failure		400		{object}	any					"Bad request"
@@ -534,7 +534,21 @@ func (app *application) handleSessionStop(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (app *application) handleSessionStats(w http.ResponseWriter, r *http.Request) {
+// Handle User Stats
+//
+//	@Summary		Users Statistics
+//	@Description	Get users statistics
+//	@Tags			users
+//	@Produce		json
+//	@Param			userId	path		int		true	"User ID"
+//	@Param			after	query		string	false	"Start date"
+//	@Param			before	query		string	false	"End date"
+//	@Success		200		{array}		main.userFormatStat
+//	@Failure		400		{object}	any	"Bad request input"
+//	@Failure		404		{object}	any	"User not found"
+//	@Failure		500		{object}	any	"Internal server error"
+//	@Router			/users/{userId}/stats [get]
+func (app *application) handleUserStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
 	handlerLogger := app.serverLogger(
@@ -566,7 +580,7 @@ func (app *application) handleSessionStats(w http.ResponseWriter, r *http.Reques
 	}
 	if ok {
 		now := time.Now()
-        if now.Before(before) {
+		if now.Before(before) {
 			before = now
 		}
 
@@ -597,52 +611,52 @@ func (app *application) handleSessionStats(w http.ResponseWriter, r *http.Reques
 		return session.Task
 	})
 
-	sessionStats := lo.MapToSlice(groupedSessions, func(task model.ID, sessions []model.Session) sessionStat {
+	userStats := lo.MapToSlice(groupedSessions, func(task model.ID, sessions []model.Session) userStat {
 		sum := lo.SumBy(sessions, func(session model.Session) time.Duration {
-            if opts.After != nil && session.Begin.After(*opts.After) {
-                session.Begin = *opts.After
-            }
+			if opts.After != nil && session.Begin.After(*opts.After) {
+				session.Begin = *opts.After
+			}
 			if session.End == nil || session.End.After(*opts.Before) {
-                session.End = new(time.Time)
-                if opts.Before != nil {
-                    *session.End = *opts.Before
-                } else {
-                    *session.End = time.Now()
-                }
-			} 
+				session.End = new(time.Time)
+				if opts.Before != nil {
+					*session.End = *opts.Before
+				} else {
+					*session.End = time.Now()
+				}
+			}
 			return session.End.Sub(session.Begin)
 		})
-		return sessionStat{
+		return userStat{
 			Task: task,
 			Time: sum,
 		}
 	})
 
-	slices.SortFunc(sessionStats, func(a, b sessionStat) int {
+	slices.SortFunc(userStats, func(a, b userStat) int {
 		return int(b.Time - a.Time) // TODO: Change to duration comparison
 	})
 
-	formattedSessionStats := lo.Map(sessionStats, func(session sessionStat, _ int) formattedSessionStat {
-		return newFormattedSessionStat(session)
+	userFormatStats := lo.Map(userStats, func(session userStat, _ int) userFormatStat {
+		return newUserFormatStat(session)
 	})
 
-	if err := response.JSON(w, http.StatusOK, formattedSessionStats); err != nil {
+	if err := response.JSON(w, http.StatusOK, userFormatStats); err != nil {
 		app.serverError(w, r, err)
 	}
 }
 
-type sessionStat struct {
+type userStat struct {
 	Task model.ID      `json:"task"`
 	Time time.Duration `json:"time"`
 }
 
-type formattedSessionStat struct {
+type userFormatStat struct {
 	Task model.ID `json:"task"`
 	Time string   `json:"time"`
 }
 
-func newFormattedSessionStat(s sessionStat) formattedSessionStat {
-	return formattedSessionStat{
+func newUserFormatStat(s userStat) userFormatStat {
+	return userFormatStat{
 		Task: s.Task,
 		Time: s.Time.String(), // TODO: Pretty format
 	}
