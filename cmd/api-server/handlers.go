@@ -89,7 +89,7 @@ func (app *application) handleShowUsers(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	handlerLogger.Debug("users found", "users", users)
+	handlerLogger.Debug("users found", "count", len(users))
 
 	if err := response.JSON(w, http.StatusOK, responseShowUsers{Users: users}); err != nil {
 		app.serverError(w, r, err)
