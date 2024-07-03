@@ -75,12 +75,12 @@ func (app *application) handleShowUsers(w http.ResponseWriter, r *http.Request) 
 	}
 
 	filter := database.FindUserFilter{
-		Name:           nullStringQueryParams(r, "name"),
-		Surname:        nullStringQueryParams(r, "surname"),
-		Patronymic:     nullStringQueryParams(r, "patronymic"),
-		PassportSerie:  nullIntQueryParams(r, "passportSerie"),
-		PassportNumber: nullIntQueryParams(r, "passportNumber"),
-		Address:        nullStringQueryParams(r, "address"),
+		Name:           optionalStringQueryParams(r, "name"),
+		Surname:        optionalStringQueryParams(r, "surname"),
+		Patronymic:     optionalStringQueryParams(r, "patronymic"),
+		PassportSerie:  optionalIntQueryParams(r, "passportSerie"),
+		PassportNumber: optionalIntQueryParams(r, "passportNumber"),
+		Address:        optionalStringQueryParams(r, "address"),
 	}
 
 	handlerLogger.Debug("read params and body", "filter", filter, "opts", opts)

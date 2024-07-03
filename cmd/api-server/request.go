@@ -38,7 +38,7 @@ func defaultIntQueryParams(r *http.Request, key string, def int) int {
 	return i
 }
 
-func nullStringQueryParams(r *http.Request, key string) *string {
+func optionalStringQueryParams(r *http.Request, key string) *string {
 	ref := new(string)
 	val, ok := r.URL.Query().Get(key), r.URL.Query().Has(key)
 	if !ok {
@@ -48,7 +48,7 @@ func nullStringQueryParams(r *http.Request, key string) *string {
 	return ref
 }
 
-func nullIntQueryParams(r *http.Request, key string) *int {
+func optionalIntQueryParams(r *http.Request, key string) *int {
 	ref := new(int)
 	val, ok := r.URL.Query().Get(key), r.URL.Query().Has(key)
 	if !ok {
