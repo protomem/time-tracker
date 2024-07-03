@@ -89,7 +89,8 @@ func (dao *SessionDAO) Update(ctx context.Context, id model.ID, dto UpdateSessio
 	query, args, err := dao.Builder.
 		Update("sessions").
 		SetMap(map[string]any{
-			"sess_end": dto.End,
+			"updated_at": time.Now(),
+			"sess_end":   dto.End,
 		}).
 		Where(squirrel.Eq{"id": id}).
 		ToSql()
