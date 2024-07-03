@@ -21,6 +21,88 @@ func NewSessionDAO(logger *slog.Logger, db *DB) *SessionDAO {
 	}
 }
 
+type SessionTimelineOptions struct {
+	After  time.Time
+	Before time.Time
+}
+
+func (dao *SessionDAO) FindByUser(ctx context.Context, user model.ID, topts SessionTimelineOptions) ([]model.Session, error) {
+	query, args, err := dao.Builder.
+		Select("*").
+		From("sessions").
+		Where(squirrel.Eq{"user_id": user}).
+		Where(squirrel.GtOrEq{"sess_begin": topts.After}).
+		Where(squirrel.LtOrEq{"sess_begin": topts.Before}).
+		ToSql()
+	if err != nil {
+		return []model.Session{}, err
+	}
+
+	dao.Logger.Debug("query", "sql", query, "args", args)
+
+	var sessions []model.Session
+	if err := dao.SelectContext(ctx, &sessions, query, args...); err != nil {
+		return []model.Session{}, err
+	}
+
+	return sessions, nil
+}
+
+func (dao *SessionDAO) FirstDoneByUser(ctx context.Context, user model.ID) (model.Session, error) {
+	query, args, err := dao.Builder.
+		Select("*").
+		From("sessions").
+		Where(squirrel.Eq{"user_id": user}).
+		OrderBy("sess_begin ASC").
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return model.Session{}, err
+	}
+
+	dao.Logger.Debug("query", "sql", query, "args", args)
+
+	var session model.Session
+	row := dao.QueryRowxContext(ctx, query, args...)
+	if err := row.StructScan(&session); err != nil {
+		if IsNoRows(err) {
+			return model.Session{}, model.NewError("session", model.ErrNotFound)
+		}
+
+		return model.Session{}, err
+	}
+
+	return session, nil
+}
+
+func (dao *SessionDAO) LastDoneByUser(ctx context.Context, user model.ID) (model.Session, error) {
+	query, args, err := dao.Builder.
+		Select("*").
+		From("sessions").
+		Where(squirrel.Eq{"user_id": user}).
+		Where(squirrel.NotEq{"sess_end": nil}).
+		OrderBy("sess_begin DESC").
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return model.Session{}, err
+	}
+
+	dao.Logger.Debug("query", "sql", query, "args", args)
+
+	var session model.Session
+	row := dao.QueryRowxContext(ctx, query, args...)
+	if err := row.StructScan(&session); err != nil {
+		if IsNoRows(err) {
+			return model.Session{}, model.NewError("session", model.ErrNotFound)
+		}
+
+		return model.Session{}, err
+	}
+
+	return session, nil
+}
+
 func (dao *SessionDAO) LastByTaskAndUser(ctx context.Context, task, user model.ID) (model.Session, error) {
 	query, args, err := dao.Builder.
 		Select("*").
