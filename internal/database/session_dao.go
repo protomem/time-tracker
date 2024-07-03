@@ -21,6 +21,42 @@ func NewSessionDAO(logger *slog.Logger, db *DB) *SessionDAO {
 	}
 }
 
+type SessionTimelineOptions struct {
+	After  *time.Time
+	Before *time.Time
+}
+
+func (dao *SessionDAO) FindByUser(ctx context.Context, user model.ID, opts SessionTimelineOptions) ([]model.Session, error) {
+	stmt := dao.Builder.
+		Select("*").
+		From("sessions").
+		Where(squirrel.Eq{"user_id": user})
+
+	if opts.After != nil {
+		stmt = stmt.Where(squirrel.Or{
+			squirrel.Eq{"sess_end": nil},
+			squirrel.Gt{"sess_end": *opts.After},
+		})
+	}
+	if opts.Before != nil {
+		stmt = stmt.Where(squirrel.Lt{"sess_begin": *opts.Before})
+	}
+
+	query, args, err := stmt.ToSql()
+	if err != nil {
+		return []model.Session{}, err
+	}
+
+	dao.Logger.Debug("query", "sql", query, "args", args)
+
+	sessions := make([]model.Session, 0)
+	if err := dao.SelectContext(ctx, &sessions, query, args...); err != nil {
+		return []model.Session{}, err
+	}
+
+	return sessions, nil
+}
+
 func (dao *SessionDAO) LastByTaskAndUser(ctx context.Context, task, user model.ID) (model.Session, error) {
 	logger := dao.Logger.With("query", "lastByTaskAndUser")
 

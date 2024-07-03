@@ -15,6 +15,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/ogen-go/ogen v1.2.2
 	github.com/rs/cors v1.11.0
+	github.com/samber/lo v1.44.0
 	github.com/swaggo/http-swagger/v2 v2.0.2
 	github.com/swaggo/swag v1.16.3
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce

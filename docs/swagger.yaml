@@ -36,6 +36,13 @@ definitions:
       user:
         $ref: '#/definitions/model.User'
     type: object
+  main.userFormatStat:
+    properties:
+      task:
+        type: integer
+      time:
+        type: string
+    type: object
   model.User:
     properties:
       address:
@@ -327,6 +334,47 @@ paths:
           schema:
             type: object
       summary: Update user
+      tags:
+      - users
+  /users/{userId}/stats:
+    get:
+      description: Get users statistics
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      - description: Start date
+        in: query
+        name: after
+        type: string
+      - description: End date
+        in: query
+        name: before
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.userFormatStat'
+            type: array
+        "400":
+          description: Bad request input
+          schema:
+            type: object
+        "404":
+          description: User not found
+          schema:
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            type: object
+      summary: Users Statistics
       tags:
       - users
 swagger: "2.0"

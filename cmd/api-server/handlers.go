@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/protomem/time-tracker/internal/request"
 	"github.com/protomem/time-tracker/internal/response"
 	"github.com/protomem/time-tracker/internal/validator"
+	"github.com/samber/lo"
 )
 
 const (
@@ -247,9 +249,9 @@ func parsePassportNumber(s string) (passportNumber int, passportSerie int, err e
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
-//	@Param			userId	path		int					true	"User ID"
-//	@Param			input	body		requestUpdateUser	true	"New user data"
-//	@Success		200		{object}	responseUpdateUser
+//	@Param			userId	path		int						true	"User ID"
+//	@Param			input	body		main.requestUpdateUser	true	"New user data"
+//	@Success		200		{object}	main.responseUpdateUser
 //	@Failure		400		{object}	any					"Bad request"
 //	@Failure		404		{object}	any					"User not found"
 //	@Failure		409		{object}	any					"User already exists"
@@ -530,4 +532,132 @@ func (app *application) handleSessionStop(w http.ResponseWriter, r *http.Request
 	handlerLogger.Debug("session updated", "sessionId", session.ID)
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// Handle User Stats
+//
+//	@Summary		Users Statistics
+//	@Description	Get users statistics
+//	@Tags			users
+//	@Produce		json
+//	@Param			userId	path		int		true	"User ID"
+//	@Param			after	query		string	false	"Start date"
+//	@Param			before	query		string	false	"End date"
+//	@Success		200		{array}		main.userFormatStat
+//	@Failure		400		{object}	any	"Bad request input"
+//	@Failure		404		{object}	any	"User not found"
+//	@Failure		500		{object}	any	"Internal server error"
+//	@Router			/users/{userId}/stats [get]
+func (app *application) handleUserStats(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
+	handlerLogger := app.serverLogger(
+		"handler", "updateUser",
+		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
+	)
+
+	userID, err := userIDFromRequest(r)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	opts := database.SessionTimelineOptions{}
+
+	after, ok, err := timeQueryParams(r, "after")
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+	if ok {
+		opts.After = &after
+	}
+
+	before, ok, err := timeQueryParams(r, "before")
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+	if ok {
+		now := time.Now()
+		if now.Before(before) {
+			before = now
+		}
+
+		opts.Before = &before
+	}
+
+	handlerLogger.Debug("read params and body", "userId", userID, "opts", opts)
+
+	userDAO := database.NewUserDAO(baseLogger, app.db)
+	if _, err := userDAO.Get(ctx, userID); err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			app.errorMessage(w, r, http.StatusNotFound, err.Error(), nil)
+			return
+		}
+
+		app.serverError(w, r, err)
+		return
+	}
+
+	sessDAO := database.NewSessionDAO(baseLogger, app.db)
+	sessions, err := sessDAO.FindByUser(ctx, userID, opts)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	groupedSessions := lo.GroupBy(sessions, func(session model.Session) model.ID {
+		return session.Task
+	})
+
+	userStats := lo.MapToSlice(groupedSessions, func(task model.ID, sessions []model.Session) userStat {
+		sum := lo.SumBy(sessions, func(session model.Session) time.Duration {
+			if opts.After != nil && session.Begin.After(*opts.After) {
+				session.Begin = *opts.After
+			}
+			if session.End == nil || session.End.After(*opts.Before) {
+				session.End = new(time.Time)
+				if opts.Before != nil {
+					*session.End = *opts.Before
+				} else {
+					*session.End = time.Now()
+				}
+			}
+			return session.End.Sub(session.Begin)
+		})
+		return userStat{
+			Task: task,
+			Time: sum,
+		}
+	})
+
+	slices.SortFunc(userStats, func(a, b userStat) int {
+		return int(b.Time - a.Time) // TODO: Change to duration comparison
+	})
+
+	userFormatStats := lo.Map(userStats, func(session userStat, _ int) userFormatStat {
+		return newUserFormatStat(session)
+	})
+
+	if err := response.JSON(w, http.StatusOK, userFormatStats); err != nil {
+		app.serverError(w, r, err)
+	}
+}
+
+type userStat struct {
+	Task model.ID      `json:"task"`
+	Time time.Duration `json:"time"`
+}
+
+type userFormatStat struct {
+	Task model.ID `json:"task"`
+	Time string   `json:"time"`
+}
+
+func newUserFormatStat(s userStat) userFormatStat {
+	return userFormatStat{
+		Task: s.Task,
+		Time: s.Time.String(), // TODO: Pretty format
+	}
 }
