@@ -46,7 +46,7 @@ func (app *application) routes() http.Handler {
 		), // The url pointing to API definition
 	))
 
-	app.logger.Debug("routes configured", "routes", chiRoutesToStrings(mux.Routes()))
+	app.serverLogger().Debug("routes configured", "routes", chiRoutesToStrings(mux.Routes()))
 
 	return mux
 }

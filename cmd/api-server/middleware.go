@@ -53,7 +53,7 @@ func (app *application) logAccess(next http.Handler) http.Handler {
 		requestAttrs := slog.Group("request", "method", method, "url", url, "proto", proto, _traceIDKey.String(), tid)
 		responseAttrs := slog.Group("repsonse", "status", mw.StatusCode, "size", mw.BytesCount)
 
-		app.logger.Info("access", userAttrs, requestAttrs, responseAttrs)
+		app.serverLogger().Info("access", userAttrs, requestAttrs, responseAttrs)
 	})
 }
 

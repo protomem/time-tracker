@@ -58,8 +58,11 @@ func (app *application) handleStatus(w http.ResponseWriter, r *http.Request) {
 //	@Router			/users [get]
 func (app *application) handleShowUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	baseLogger := app.logger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
-	handlerLogger := baseLogger.With("handler", "showUsers")
+	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
+	handlerLogger := app.serverLogger(
+		"handler", "showUsers",
+		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
+	)
 
 	// TODO: Add validation
 
@@ -116,8 +119,11 @@ type responseShowUsers struct {
 //	@Router			/users [post]
 func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	baseLogger := app.logger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
-	handlerLogger := baseLogger.With("handler", "addUser")
+	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
+	handlerLogger := app.serverLogger().With(
+		"handler", "addUser",
+		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
+	)
 
 	var input requestAddUser
 	if err := request.DecodeJSONStrict(w, r, &input); err != nil {
@@ -252,8 +258,11 @@ func parsePassportNumber(s string) (passportNumber int, passportSerie int, err e
 //	@Router			/users/{userId} [put]
 func (app *application) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	baseLogger := app.logger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
-	handlerLogger := baseLogger.With("handler", "updateUser")
+	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
+	handlerLogger := app.serverLogger(
+		"handler", "updateUser",
+		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
+	)
 
 	userID, err := userIDFromRequest(r)
 	if err != nil {
@@ -347,8 +356,11 @@ type responseUpdateUser struct {
 //	@Router			/users/{userId} [delete]
 func (app *application) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	baseLogger := app.logger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
-	handlerLogger := baseLogger.With("handler", "updateUser")
+	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
+	handlerLogger := app.serverLogger().With(
+		"handler", "updateUser",
+		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
+	)
 
 	userID, err := userIDFromRequest(r)
 	if err != nil {
@@ -397,8 +409,11 @@ func (app *application) handleDeleteUser(w http.ResponseWriter, r *http.Request)
 //	@Router			/sessions/{userId}/{taskId} [post]
 func (app *application) handleSessionStart(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	baseLogger := app.logger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
-	handlerLogger := baseLogger.With("handler", "updateUser")
+	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
+	handlerLogger := app.serverLogger().With(
+		"handler", "updateUser",
+		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
+	)
 
 	userID, err := userIDFromRequest(r)
 	if err != nil {
@@ -465,8 +480,11 @@ func (app *application) handleSessionStart(w http.ResponseWriter, r *http.Reques
 //	@Router			/sessions/{userId}/{taskId} [delete]
 func (app *application) handleSessionStop(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	baseLogger := app.logger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
-	handlerLogger := baseLogger.With("handler", "updateUser")
+	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
+	handlerLogger := app.serverLogger(
+		"handler", "updateUser",
+		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
+	)
 
 	userID, err := userIDFromRequest(r)
 	if err != nil {
