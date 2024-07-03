@@ -74,7 +74,7 @@ func run(logger *slog.Logger) error {
 		return nil
 	}
 
-	db, err := database.New(cfg.db.dsn, cfg.db.automigrate)
+	db, err := database.New(logger, cfg.db.dsn, cfg.db.automigrate)
 	if err != nil {
 		return err
 	}
