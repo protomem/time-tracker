@@ -250,8 +250,8 @@ func parsePassportNumber(s string) (passportNumber int, passportSerie int, err e
 //	@Accept			json
 //	@Produce		json
 //	@Param			userId	path		int					true	"User ID"
-//	@Param			input	body		requestUpdateUser	true	"New user data"
-//	@Success		200		{object}	responseUpdateUser
+//	@Param			input	body		main.requestUpdateUser	true	"New user data"
+//	@Success		200		{object}	main.responseUpdateUser
 //	@Failure		400		{object}	any					"Bad request"
 //	@Failure		404		{object}	any					"User not found"
 //	@Failure		409		{object}	any					"User already exists"
@@ -536,7 +536,9 @@ func (app *application) handleSessionStop(w http.ResponseWriter, r *http.Request
 
 func (app *application) handleSessionStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	logger := app.logger.With(
+	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
+	handlerLogger := app.serverLogger(
+		"handler", "updateUser",
 		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
 	)
 
@@ -546,81 +548,68 @@ func (app *application) handleSessionStats(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	dao := database.NewSessionDAO(logger, app.db)
+	opts := database.SessionTimelineOptions{}
 
-	topts := database.SessionTimelineOptions{}
-
-	afterTimeStr, afterTimeOk := stringQueryParams(r, "after")
-	if afterTimeOk {
-		afterTime, err := time.Parse(time.RFC3339, afterTimeStr)
-		if err != nil {
-			app.badRequest(w, r, err)
-			return
-		}
-
-		topts.After = afterTime
-	} else {
-		// Ищем первую, завершенную сессию пользователя
-		// и, ecли такая сессия не нашлась, то возвращаем пустую статистику
-		// так как ни одна сессия не была завершена
-		firstSession, err := dao.FirstDoneByUser(ctx, userID)
-		if err != nil {
-			if errors.Is(err, model.ErrNotFound) {
-				if err := response.JSON(w, http.StatusOK, []responseSessionStat{}); err != nil {
-					app.serverError(w, r, err)
-				}
-				return
-			}
-
-			app.serverError(w, r, err)
-			return
-		}
-
-		topts.After = firstSession.Begin
+	after, ok, err := timeQueryParams(r, "after")
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+	if ok {
+		opts.After = &after
 	}
 
-	beforeTimeStr, beforeTimeOk := stringQueryParams(r, "before")
-	if beforeTimeOk {
-		beforeTime, err := time.Parse(time.RFC3339, beforeTimeStr)
-		if err != nil {
-			app.badRequest(w, r, fmt.Errorf("bad 'before' param: %w", err))
-			return
+	before, ok, err := timeQueryParams(r, "before")
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+	if ok {
+		now := time.Now()
+        if now.Before(before) {
+			before = now
 		}
-		topts.Before = beforeTime
-	} else {
-		// Ищем последнюю, завершенную сессию пользователя
-		// и, ecли такая сессия не нашлась, то поступаем аналогично предыдущему случаю.
-		lastSession, err := dao.LastDoneByUser(ctx, userID)
-		if err != nil {
-			if errors.Is(err, model.ErrNotFound) {
-				if err := response.JSON(w, http.StatusOK, []responseSessionStat{}); err != nil {
-					app.serverError(w, r, err)
-				}
-				return
-			}
 
-			app.serverError(w, r, err)
-			return
-		}
-		topts.Before = *lastSession.End
+		opts.Before = &before
 	}
 
-	sessions, err := dao.FindByUser(ctx, userID, topts)
+	handlerLogger.Debug("read params and body", "userId", userID, "opts", opts)
+
+	userDAO := database.NewUserDAO(baseLogger, app.db)
+	if _, err := userDAO.Get(ctx, userID); err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			app.errorMessage(w, r, http.StatusNotFound, err.Error(), nil)
+			return
+		}
+
+		app.serverError(w, r, err)
+		return
+	}
+
+	sessDAO := database.NewSessionDAO(baseLogger, app.db)
+	sessions, err := sessDAO.FindByUser(ctx, userID, opts)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
 
-	logger.Debug("find sessions", "sessions", sessions)
-
 	groupedSessions := lo.GroupBy(sessions, func(session model.Session) model.ID {
 		return session.Task
 	})
 
-	logger.Debug("group sessions", "groupedSessions", groupedSessions)
-
-	sessionStas := lo.MapToSlice(groupedSessions, func(task model.ID, sessions []model.Session) sessionStat {
+	sessionStats := lo.MapToSlice(groupedSessions, func(task model.ID, sessions []model.Session) sessionStat {
 		sum := lo.SumBy(sessions, func(session model.Session) time.Duration {
+            if opts.After != nil && session.Begin.After(*opts.After) {
+                session.Begin = *opts.After
+            }
+			if session.End == nil || session.End.After(*opts.Before) {
+                session.End = new(time.Time)
+                if opts.Before != nil {
+                    *session.End = *opts.Before
+                } else {
+                    *session.End = time.Now()
+                }
+			} 
 			return session.End.Sub(session.Begin)
 		})
 		return sessionStat{
@@ -629,33 +618,32 @@ func (app *application) handleSessionStats(w http.ResponseWriter, r *http.Reques
 		}
 	})
 
-	logger.Debug("session stats", "sessionStas", sessionStas)
-
-	slices.SortFunc(sessionStas, func(a, b sessionStat) int {
-		return int(b.Time - a.Time)
+	slices.SortFunc(sessionStats, func(a, b sessionStat) int {
+		return int(b.Time - a.Time) // TODO: Change to duration comparison
 	})
 
-	logger.Debug("sorted session stats", "sessionStas", sessionStas)
-
-	responseSessions := lo.Map(sessionStas, func(stat sessionStat, _ int) responseSessionStat {
-		return responseSessionStat{
-			Task: stat.Task,
-			Time: stat.Time.String(), // TODO: Pretty time
-		}
+	formattedSessionStats := lo.Map(sessionStats, func(session sessionStat, _ int) formattedSessionStat {
+		return newFormattedSessionStat(session)
 	})
 
-	if err := response.JSON(w, http.StatusOK, responseSessions); err != nil {
+	if err := response.JSON(w, http.StatusOK, formattedSessionStats); err != nil {
 		app.serverError(w, r, err)
-		return
 	}
 }
 
 type sessionStat struct {
-	Task model.ID
-	Time time.Duration
+	Task model.ID      `json:"task"`
+	Time time.Duration `json:"time"`
 }
 
-type responseSessionStat struct {
+type formattedSessionStat struct {
 	Task model.ID `json:"task"`
 	Time string   `json:"time"`
+}
+
+func newFormattedSessionStat(s sessionStat) formattedSessionStat {
+	return formattedSessionStat{
+		Task: s.Task,
+		Time: s.Time.String(), // TODO: Pretty format
+	}
 }
