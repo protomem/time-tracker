@@ -16,12 +16,14 @@ type SessionDAO struct {
 
 func NewSessionDAO(logger *slog.Logger, db *DB) *SessionDAO {
 	return &SessionDAO{
-		Logger: logger,
+		Logger: logger.With("dao", "session"),
 		DB:     db,
 	}
 }
 
 func (dao *SessionDAO) LastByTaskAndUser(ctx context.Context, task, user model.ID) (model.Session, error) {
+	logger := dao.Logger.With("query", "lastByTaskAndUser")
+
 	query, args, err := dao.Builder.
 		Select("*").
 		From("sessions").
@@ -34,17 +36,21 @@ func (dao *SessionDAO) LastByTaskAndUser(ctx context.Context, task, user model.I
 		return model.Session{}, err
 	}
 
-	dao.Logger.Debug("query", "sql", query, "args", args)
+	logger.Debug("build query", "sql", query, "args", args)
 
 	var session model.Session
 	row := dao.QueryRowxContext(ctx, query, args...)
 	if err := row.StructScan(&session); err != nil {
+		logger.Debug("failed query execute", "error", err)
+
 		if IsNoRows(err) {
 			return model.Session{}, model.NewError("session", model.ErrNotFound)
 		}
 
 		return model.Session{}, err
 	}
+
+	logger.Debug("success query execute", "session", session)
 
 	return session, nil
 }
@@ -56,6 +62,8 @@ type InsertSessionDTO struct {
 }
 
 func (dao *SessionDAO) Insert(ctx context.Context, dto InsertSessionDTO) (model.ID, error) {
+	logger := dao.Logger.With("query", "insert")
+
 	query, args, err := dao.Builder.
 		Insert("sessions").
 		Columns("user_id", "task_id", "sess_begin").
@@ -66,17 +74,21 @@ func (dao *SessionDAO) Insert(ctx context.Context, dto InsertSessionDTO) (model.
 		return 0, err
 	}
 
-	dao.Logger.Debug("query", "sql", query, "args", args)
+	logger.Debug("build query", "sql", query, "args", args)
 
 	var id model.ID
 	row := dao.QueryRowxContext(ctx, query, args...)
 	if err := row.Scan(&id); err != nil {
+		logger.Warn("failed query execute", "error", err)
+
 		if IsUniqueViolation(err) {
 			return 0, model.NewError("session", model.ErrExists)
 		}
 
 		return 0, err
 	}
+
+	logger.Debug("success query execute", "insertId", id)
 
 	return id, nil
 }
@@ -86,6 +98,8 @@ type UpdateSessionDTO struct {
 }
 
 func (dao *SessionDAO) Update(ctx context.Context, id model.ID, dto UpdateSessionDTO) error {
+	logger := dao.Logger.With("query", "update")
+
 	query, args, err := dao.Builder.
 		Update("sessions").
 		SetMap(map[string]any{
@@ -98,11 +112,13 @@ func (dao *SessionDAO) Update(ctx context.Context, id model.ID, dto UpdateSessio
 		return err
 	}
 
-	dao.Logger.Debug("query", "sql", query, "args", args)
+	logger.Debug("build query", "sql", query, "args", args)
 
 	if _, err = dao.ExecContext(ctx, query, args...); err != nil {
 		return err
 	}
+
+	logger.Debug("success query execute", "updateId", id, "countUpdatedFields", 2)
 
 	return nil
 }
