@@ -18,6 +18,11 @@ func taskIDFromRequest(r *http.Request) (model.ID, error) {
 	return model.ID(id), err
 }
 
+func stringQueryParams(r *http.Request, key string) (string, bool) {
+	val, ok := r.URL.Query().Get(key), r.URL.Query().Has(key)
+	return val, ok
+}
+
 func defaultStringQueryParams(r *http.Request, key string, def string) string {
 	val, ok := r.URL.Query().Get(key), r.URL.Query().Has(key)
 	if !ok {

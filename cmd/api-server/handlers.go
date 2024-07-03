@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/protomem/time-tracker/internal/request"
 	"github.com/protomem/time-tracker/internal/response"
 	"github.com/protomem/time-tracker/internal/validator"
+	"github.com/samber/lo"
 )
 
 const (
@@ -491,4 +493,130 @@ func (app *application) handleSessionStop(w http.ResponseWriter, r *http.Request
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (app *application) handleSessionStats(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := app.logger.With(
+		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
+	)
+
+	userID, err := userIDFromRequest(r)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	dao := database.NewSessionDAO(logger, app.db)
+
+	topts := database.SessionTimelineOptions{}
+
+	afterTimeStr, afterTimeOk := stringQueryParams(r, "after")
+	if afterTimeOk {
+		afterTime, err := time.Parse(time.RFC3339, afterTimeStr)
+		if err != nil {
+			app.badRequest(w, r, err)
+			return
+		}
+
+		topts.After = afterTime
+	} else {
+		// Ищем первую, завершенную сессию пользователя
+		// и, ecли такая сессия не нашлась, то возвращаем пустую статистику
+		// так как ни одна сессия не была завершена
+		firstSession, err := dao.FirstDoneByUser(ctx, userID)
+		if err != nil {
+			if errors.Is(err, model.ErrNotFound) {
+				if err := response.JSON(w, http.StatusOK, []responseSessionStat{}); err != nil {
+					app.serverError(w, r, err)
+				}
+				return
+			}
+
+			app.serverError(w, r, err)
+			return
+		}
+
+		topts.After = firstSession.Begin
+	}
+
+	beforeTimeStr, beforeTimeOk := stringQueryParams(r, "before")
+	if beforeTimeOk {
+		beforeTime, err := time.Parse(time.RFC3339, beforeTimeStr)
+		if err != nil {
+			app.badRequest(w, r, fmt.Errorf("bad 'before' param: %w", err))
+			return
+		}
+		topts.Before = beforeTime
+	} else {
+		// Ищем последнюю, завершенную сессию пользователя
+		// и, ecли такая сессия не нашлась, то поступаем аналогично предыдущему случаю.
+		lastSession, err := dao.LastDoneByUser(ctx, userID)
+		if err != nil {
+			if errors.Is(err, model.ErrNotFound) {
+				if err := response.JSON(w, http.StatusOK, []responseSessionStat{}); err != nil {
+					app.serverError(w, r, err)
+				}
+				return
+			}
+
+			app.serverError(w, r, err)
+			return
+		}
+		topts.Before = *lastSession.End
+	}
+
+	sessions, err := dao.FindByUser(ctx, userID, topts)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	logger.Debug("find sessions", "sessions", sessions)
+
+	groupedSessions := lo.GroupBy(sessions, func(session model.Session) model.ID {
+		return session.Task
+	})
+
+	logger.Debug("group sessions", "groupedSessions", groupedSessions)
+
+	sessionStas := lo.MapToSlice(groupedSessions, func(task model.ID, sessions []model.Session) sessionStat {
+		sum := lo.SumBy(sessions, func(session model.Session) time.Duration {
+			return session.End.Sub(session.Begin)
+		})
+		return sessionStat{
+			Task: task,
+			Time: sum,
+		}
+	})
+
+	logger.Debug("session stats", "sessionStas", sessionStas)
+
+	slices.SortFunc(sessionStas, func(a, b sessionStat) int {
+		return int(b.Time - a.Time)
+	})
+
+	logger.Debug("sorted session stats", "sessionStas", sessionStas)
+
+	responseSessions := lo.Map(sessionStas, func(stat sessionStat, _ int) responseSessionStat {
+		return responseSessionStat{
+			Task: stat.Task,
+			Time: stat.Time.String(), // TODO: Pretty time
+		}
+	})
+
+	if err := response.JSON(w, http.StatusOK, responseSessions); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+}
+
+type sessionStat struct {
+	Task model.ID
+	Time time.Duration
+}
+
+type responseSessionStat struct {
+	Task model.ID `json:"task"`
+	Time string   `json:"time"`
 }
