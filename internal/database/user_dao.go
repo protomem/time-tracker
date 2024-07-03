@@ -60,23 +60,18 @@ func (dao *UserDAO) Find(ctx context.Context, filter FindUserFilter, opts FindOp
 		OrderBy("created_at ASC").
 		ToSql()
 	if err != nil {
-		return nil, err
+		return []model.User{}, err
 	}
 
 	dao.Logger.Debug("query", "sql", query, "args", args)
 
-	rows, err := dao.QueryxContext(ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-
 	users := make([]model.User, 0, opts.Limit)
-	for rows.Next() {
-		var user model.User
-		if err := rows.StructScan(&user); err != nil {
-			return nil, err
+	if err := dao.SelectContext(ctx, &users, query, args...); err != nil {
+		if IsNoRows(err) {
+			return []model.User{}, nil
 		}
-		users = append(users, user)
+
+		return []model.User{}, err
 	}
 
 	return users, nil
