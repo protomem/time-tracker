@@ -43,10 +43,10 @@ type config struct {
 }
 
 type application struct {
-	config config
-	db     *database.DB
-	logger *slog.Logger
-	wg     sync.WaitGroup
+	config     config
+	db         *database.DB
+	baseLogger *slog.Logger
+	wg         sync.WaitGroup
 }
 
 func run(logger *slog.Logger) error {
@@ -74,16 +74,16 @@ func run(logger *slog.Logger) error {
 		return nil
 	}
 
-	db, err := database.New(cfg.db.dsn, cfg.db.automigrate)
+	db, err := database.New(logger, cfg.db.dsn, cfg.db.automigrate)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
 
 	app := &application{
-		config: cfg,
-		db:     db,
-		logger: logger,
+		config:     cfg,
+		db:         db,
+		baseLogger: logger,
 	}
 
 	return app.serveHTTP()

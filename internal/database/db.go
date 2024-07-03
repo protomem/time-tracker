@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -24,12 +25,14 @@ const (
 type DB struct {
 	*sqlx.DB
 	Builder squirrel.StatementBuilderType
+	Logger  *slog.Logger
 }
 
-func New(dsn string, automigrate bool) (*DB, error) {
+func New(logger *slog.Logger, dsn string, automigrate bool) (*DB, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), _defaultTimeout)
 	defer cancel()
 
+	logger = logger.With("module", "database")
 	dsn = dsn + "?sslmode=disable" // disable SSL
 
 	db, err := sqlx.ConnectContext(ctx, _driverName, "postgres://"+dsn)
@@ -42,6 +45,8 @@ func New(dsn string, automigrate bool) (*DB, error) {
 	db.SetConnMaxIdleTime(5 * time.Minute)
 	db.SetConnMaxLifetime(2 * time.Hour)
 
+	logger.Info("connect to database", "dsn", dsn) // TODO: hide credentials
+
 	if automigrate {
 		iofsDriver, err := iofs.New(assets.EmbeddedFiles, "migrations")
 		if err != nil {
@@ -52,6 +57,8 @@ func New(dsn string, automigrate bool) (*DB, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		logger.Info("migrating database")
 
 		err = migrator.Up()
 		switch {
@@ -65,5 +72,11 @@ func New(dsn string, automigrate bool) (*DB, error) {
 	return &DB{
 		DB:      db,
 		Builder: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar),
+		Logger:  logger,
 	}, nil
+}
+
+func (db *DB) Close() error {
+	db.Logger.Info("disconnect from database")
+	return db.DB.Close()
 }

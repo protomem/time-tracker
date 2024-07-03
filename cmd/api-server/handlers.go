@@ -60,7 +60,9 @@ func (app *application) handleStatus(w http.ResponseWriter, r *http.Request) {
 //	@Router			/users [get]
 func (app *application) handleShowUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	logger := app.logger.With(
+	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
+	handlerLogger := app.serverLogger(
+		"handler", "showUsers",
 		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
 	)
 
@@ -75,27 +77,24 @@ func (app *application) handleShowUsers(w http.ResponseWriter, r *http.Request) 
 	}
 
 	filter := database.FindUserFilter{
-		Name:           nullStringQueryParams(r, "name"),
-		Surname:        nullStringQueryParams(r, "surname"),
-		Patronymic:     nullStringQueryParams(r, "patronymic"),
-		PassportSerie:  nullIntQueryParams(r, "passportSerie"),
-		PassportNumber: nullIntQueryParams(r, "passportNumber"),
-		Address:        nullStringQueryParams(r, "address"),
+		Name:           optionalStringQueryParams(r, "name"),
+		Surname:        optionalStringQueryParams(r, "surname"),
+		Patronymic:     optionalStringQueryParams(r, "patronymic"),
+		PassportSerie:  optionalIntQueryParams(r, "passportSerie"),
+		PassportNumber: optionalIntQueryParams(r, "passportNumber"),
+		Address:        optionalStringQueryParams(r, "address"),
 	}
 
-	logger.Debug("show users", "filter", filter, "opts", opts)
+	handlerLogger.Debug("read params and body", "filter", filter, "opts", opts)
 
-	dao := database.NewUserDAO(logger, app.db)
+	dao := database.NewUserDAO(baseLogger, app.db)
 	users, err := dao.Find(ctx, filter, opts)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
 
-	// so that null is not output
-	if users == nil {
-		users = make([]model.User, 0)
-	}
+	handlerLogger.Debug("users found", "count", len(users))
 
 	if err := response.JSON(w, http.StatusOK, responseShowUsers{Users: users}); err != nil {
 		app.serverError(w, r, err)
@@ -122,7 +121,9 @@ type responseShowUsers struct {
 //	@Router			/users [post]
 func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	logger := app.logger.With(
+	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
+	handlerLogger := app.serverLogger().With(
+		"handler", "addUser",
 		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
 	)
 
@@ -150,11 +151,15 @@ func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	handlerLogger.Debug("read params and body", "passportNumber", passportNumber, "passportSerie", passportSerie)
+
 	peopleClient, err := people_service.NewClient(app.config.peopleServ.serverURL)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
+
+	handlerLogger.Debug("create connection to people service", "addr", app.config.peopleServ.serverURL)
 
 	infoPeopleReq, err := peopleClient.InfoGet(ctx, people_service.InfoGetParams{
 		PassportSerie:  passportSerie,
@@ -172,7 +177,7 @@ func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Debug("get user from people service", "user", people)
+	handlerLogger.Debug("get user from people service", "user", people)
 
 	insertDTO := database.InsertUserDTO{
 		Name:           people.GetName(),
@@ -187,7 +192,7 @@ func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 		*insertDTO.Patronymic = people.GetPatronymic().Value
 	}
 
-	dao := database.NewUserDAO(logger, app.db)
+	dao := database.NewUserDAO(baseLogger, app.db)
 
 	userID, err := dao.Insert(ctx, insertDTO)
 	if err != nil {
@@ -205,6 +210,8 @@ func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 		app.serverError(w, r, err)
 		return
 	}
+
+	handlerLogger.Debug("user inserted", "user", user)
 
 	if err := response.JSON(w, http.StatusCreated, responseAddUser{User: user}); err != nil {
 		app.serverError(w, r, err)
@@ -253,7 +260,9 @@ func parsePassportNumber(s string) (passportNumber int, passportSerie int, err e
 //	@Router			/users/{userId} [put]
 func (app *application) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	logger := app.logger.With(
+	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
+	handlerLogger := app.serverLogger(
+		"handler", "updateUser",
 		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
 	)
 
@@ -286,7 +295,9 @@ func (app *application) handleUpdateUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	dao := database.NewUserDAO(logger, app.db)
+	handlerLogger.Debug("read params and body", "userId", userID, "input", input)
+
+	dao := database.NewUserDAO(baseLogger, app.db)
 
 	if _, err := dao.Get(ctx, userID); err != nil {
 		if errors.Is(err, model.ErrNotFound) {
@@ -297,6 +308,8 @@ func (app *application) handleUpdateUser(w http.ResponseWriter, r *http.Request)
 		app.serverError(w, r, err)
 		return
 	}
+
+	handlerLogger.Debug("check if user exists", "userId", userID)
 
 	updateDTO := database.UpdateUserDTO(input)
 
@@ -310,6 +323,8 @@ func (app *application) handleUpdateUser(w http.ResponseWriter, r *http.Request)
 		app.serverError(w, r, err)
 		return
 	}
+
+	handlerLogger.Debug("user updated", "newUser", user)
 
 	if err := response.JSON(w, http.StatusOK, responseUpdateUser{User: user}); err != nil {
 		app.serverError(w, r, err)
@@ -343,7 +358,9 @@ type responseUpdateUser struct {
 //	@Router			/users/{userId} [delete]
 func (app *application) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	logger := app.logger.With(
+	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
+	handlerLogger := app.serverLogger().With(
+		"handler", "updateUser",
 		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
 	)
 
@@ -353,7 +370,9 @@ func (app *application) handleDeleteUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	dao := database.NewUserDAO(logger, app.db)
+	handlerLogger.Debug("read params and body", "userId", userID)
+
+	dao := database.NewUserDAO(baseLogger, app.db)
 
 	if _, err := dao.Get(ctx, userID); err != nil {
 		if errors.Is(err, model.ErrNotFound) {
@@ -365,10 +384,14 @@ func (app *application) handleDeleteUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	handlerLogger.Debug("check if user exists", "userId", userID)
+
 	if err := dao.Delete(ctx, userID); err != nil {
 		app.serverError(w, r, err)
 		return
 	}
+
+	handlerLogger.Debug("user deleted", "userId", userID)
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -388,7 +411,9 @@ func (app *application) handleDeleteUser(w http.ResponseWriter, r *http.Request)
 //	@Router			/sessions/{userId}/{taskId} [post]
 func (app *application) handleSessionStart(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	logger := app.logger.With(
+	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
+	handlerLogger := app.serverLogger().With(
+		"handler", "updateUser",
 		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
 	)
 
@@ -404,7 +429,9 @@ func (app *application) handleSessionStart(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	dao := database.NewSessionDAO(logger, app.db)
+	handlerLogger.Debug("read params and body", "userId", userID, "taskId", taskID)
+
+	dao := database.NewSessionDAO(baseLogger, app.db)
 
 	session, err := dao.LastByTaskAndUser(ctx, taskID, userID)
 	if err != nil && !errors.Is(err, model.ErrNotFound) {
@@ -416,6 +443,8 @@ func (app *application) handleSessionStart(w http.ResponseWriter, r *http.Reques
 		app.errorMessage(w, r, http.StatusConflict, model.NewError("session", model.ErrExists).Error(), nil)
 		return
 	}
+
+	handlerLogger.Debug("check if session exists and not ended", "sessionId", session.ID)
 
 	insertDTO := database.InsertSessionDTO{
 		User:  userID,
@@ -432,6 +461,8 @@ func (app *application) handleSessionStart(w http.ResponseWriter, r *http.Reques
 		app.serverError(w, r, err)
 		return
 	}
+
+	handlerLogger.Debug("session inserted", "sessionId", session.ID)
 
 	w.WriteHeader(http.StatusCreated)
 }
@@ -451,7 +482,9 @@ func (app *application) handleSessionStart(w http.ResponseWriter, r *http.Reques
 //	@Router			/sessions/{userId}/{taskId} [delete]
 func (app *application) handleSessionStop(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	logger := app.logger.With(
+	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
+	handlerLogger := app.serverLogger(
+		"handler", "updateUser",
 		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
 	)
 
@@ -467,7 +500,9 @@ func (app *application) handleSessionStop(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	dao := database.NewSessionDAO(logger, app.db)
+	handlerLogger.Debug("read params and body", "userId", userID, "taskId", taskID)
+
+	dao := database.NewSessionDAO(baseLogger, app.db)
 
 	session, err := dao.LastByTaskAndUser(ctx, taskID, userID)
 	if err != nil {
@@ -485,12 +520,16 @@ func (app *application) handleSessionStop(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	handlerLogger.Debug("check if session exists and not ended", "sessionId", session.ID)
+
 	if err := dao.Update(ctx, session.ID, database.UpdateSessionDTO{
 		End: time.Now(),
 	}); err != nil {
 		app.serverError(w, r, err)
 		return
 	}
+
+	handlerLogger.Debug("session updated", "sessionId", session.ID)
 
 	w.WriteHeader(http.StatusNoContent)
 }

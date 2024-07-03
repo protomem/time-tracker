@@ -22,7 +22,7 @@ func (app *application) reportServerError(r *http.Request, err error) {
 	)
 
 	requestAttrs := slog.Group("request", "method", method, "url", url, _traceIDKey.String(), tid)
-	app.logger.Error(message, requestAttrs, "trace", trace)
+	app.baseLogger.Error(message, requestAttrs, "trace", trace)
 }
 
 func (app *application) errorMessage(w http.ResponseWriter, r *http.Request, status int, message string, headers http.Header) {

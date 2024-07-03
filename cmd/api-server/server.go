@@ -26,7 +26,7 @@ func (app *application) serveHTTP() error {
 	srv := &http.Server{
 		Addr:         fmtHTTPAddr(app.config.httpHost, app.config.httpPort),
 		Handler:      app.routes(),
-		ErrorLog:     slog.NewLogLogger(app.logger.Handler(), slog.LevelWarn),
+		ErrorLog:     slog.NewLogLogger(app.baseLogger.Handler(), slog.LevelWarn),
 		IdleTimeout:  _defaultIdleTimeout,
 		ReadTimeout:  _defaultReadTimeout,
 		WriteTimeout: _defaultWriteTimeout,
@@ -45,7 +45,7 @@ func (app *application) serveHTTP() error {
 		shutdownErrorChan <- srv.Shutdown(ctx)
 	}()
 
-	app.logger.Info("starting server", slog.Group("server", "addr", srv.Addr))
+	app.serverLogger().Info("starting server", slog.Group("server", "addr", srv.Addr))
 
 	err := srv.ListenAndServe()
 	if !errors.Is(err, http.ErrServerClosed) {
@@ -57,10 +57,15 @@ func (app *application) serveHTTP() error {
 		return err
 	}
 
-	app.logger.Info("stopped server", slog.Group("server", "addr", srv.Addr))
+	app.serverLogger().Info("stopped server", slog.Group("server", "addr", srv.Addr))
 
 	app.wg.Wait()
 	return nil
+}
+
+func (app *application) serverLogger(args ...any) *slog.Logger {
+	args = append(args, "module", "server")
+	return app.baseLogger.With(args...)
 }
 
 func fmtHTTPAddr(host string, port int) string {
