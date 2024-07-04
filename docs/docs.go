@@ -24,7 +24,7 @@ const docTemplate = `{
                 "tags": [
                     "sessions"
                 ],
-                "summary": "Show Sessions",
+                "summary": "Find Sessions",
                 "parameters": [
                     {
                         "type": "integer",
@@ -193,14 +193,14 @@ const docTemplate = `{
         },
         "/users": {
             "get": {
-                "description": "Show all users by filters with pagination",
+                "description": "Get all users by filters with pagination",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "users"
                 ],
-                "summary": "Show Users",
+                "summary": "Find Users",
                 "parameters": [
                     {
                         "minimum": 1,
@@ -259,7 +259,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.responseShowUsers"
+                            "$ref": "#/definitions/main.responseFindUsers"
                         }
                     },
                     "400": {
@@ -555,7 +555,7 @@ const docTemplate = `{
                 }
             }
         },
-        "main.responseShowUsers": {
+        "main.responseFindUsers": {
             "type": "object",
             "properties": {
                 "users": {

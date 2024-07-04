@@ -24,7 +24,7 @@ definitions:
       user:
         $ref: '#/definitions/model.User'
     type: object
-  main.responseShowUsers:
+  main.responseFindUsers:
     properties:
       users:
         items:
@@ -125,7 +125,7 @@ paths:
           description: Internal server error
           schema:
             type: object
-      summary: Show Sessions
+      summary: Find Sessions
       tags:
       - sessions
   /sessions/{userId}/{taskId}:
@@ -214,7 +214,7 @@ paths:
       - api
   /users:
     get:
-      description: Show all users by filters with pagination
+      description: Get all users by filters with pagination
       parameters:
       - default: 1
         description: Page number
@@ -258,7 +258,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.responseShowUsers'
+            $ref: '#/definitions/main.responseFindUsers'
         "400":
           description: Bad request
           schema:
@@ -271,7 +271,7 @@ paths:
           description: Internal server error
           schema:
             type: object
-      summary: Show Users
+      summary: Find Users
       tags:
       - users
     post:

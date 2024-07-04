@@ -32,14 +32,14 @@ func (app *application) routes() http.Handler {
 
 	mux.Get("/api/v1/status", app.handleStatus)
 
-	mux.Get("/api/v1/users", app.handleShowUsers)
+	mux.Get("/api/v1/users", app.handleFindUsers)
 	mux.Post("/api/v1/users", app.handleAddUser)
 	mux.Put("/api/v1/users/{userId}", app.handleUpdateUser)
 	mux.Delete("/api/v1/users/{userId}", app.handleDeleteUser)
 
 	mux.Get("/api/v1/users/{userId}/stats", app.handleUserStats)
 
-    mux.Get("/api/v1/sessions/{userId}", app.handleShowSessions)
+	mux.Get("/api/v1/sessions/{userId}", app.handleFindSessions)
 	mux.Post("/api/v1/sessions/{userId}/{taskId}", app.handleSessionStart)
 	mux.Delete("/api/v1/sessions/{userId}/{taskId}", app.handleSessionStop)
 

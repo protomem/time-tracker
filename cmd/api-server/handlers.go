@@ -36,10 +36,10 @@ func (app *application) handleStatus(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Handle Show Users
+// Handle Find Users
 //
-//	@Summary		Show Users
-//	@Description	Show all users by filters with pagination
+//	@Summary		Find Users
+//	@Description	Get all users by filters with pagination
 //	@Tags			users
 //	@Produce		json
 //	@Param			page			query		int		false	"Page number"	default(1)	minimum(1)
@@ -50,14 +50,14 @@ func (app *application) handleStatus(w http.ResponseWriter, r *http.Request) {
 //	@Param			address			query		string	false	"User address"
 //	@Param			passportSerie	query		int		false	"User passport serie"
 //	@Param			passportNumber	query		int		false	"User passport number"
-//	@Success		200				{object}	main.responseShowUsers
+//	@Success		200				{object}	main.responseFindUsers
 //	@Failure		400				{object}	any					"Bad request"
 //	@Failure		422				{object}	validator.Validator	"Invalid input data"
 //	@Failure		500				{object}	any					"Internal server error"
 //	@Router			/users [get]
-func (app *application) handleShowUsers(w http.ResponseWriter, r *http.Request) {
+func (app *application) handleFindUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	baseLogger, handlerLogger := app.buildHandlerLoggers(r, "showUsers")
+	baseLogger, handlerLogger := app.buildHandlerLoggers(r, "findUsers")
 
 	// TODO: Add validation
 
@@ -75,12 +75,12 @@ func (app *application) handleShowUsers(w http.ResponseWriter, r *http.Request) 
 
 	handlerLogger.Debug("users found", "count", len(users))
 
-	if err := response.JSON(w, http.StatusOK, responseShowUsers{Users: users}); err != nil {
+	if err := response.JSON(w, http.StatusOK, responseFindUsers{Users: users}); err != nil {
 		app.serverError(w, r, err)
 	}
 }
 
-type responseShowUsers struct {
+type responseFindUsers struct {
 	Users []model.User `json:"users"`
 }
 
@@ -415,21 +415,21 @@ func deleteUser(
 	return nil
 }
 
-// Handle Show Sessions
+// Handle Find Sessions
 //
-//	@Summary		Show Sessions
+//	@Summary		Find Sessions
 //	@Description	Get all user sessions
 //	@Tags			sessions
 //	@Produce		json
-//	@Param			userId	path	int	true	"User ID"
+//	@Param			userId	path		int	true	"User ID"
 //	@Success		200		{object}	[]model.Session
 //	@Failure		400		{object}	any	"Bad request input"
 //	@Failure		404		{object}	any	"User not found"
 //	@Failure		500		{object}	any	"Internal server error"
 //	@Router			/sessions/{userId} [get]
-func (app *application) handleShowSessions(w http.ResponseWriter, r *http.Request) {
+func (app *application) handleFindSessions(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	baseLogger, handlerLogger := app.buildHandlerLoggers(r, "sessionStart")
+	baseLogger, handlerLogger := app.buildHandlerLoggers(r, "findSessions")
 
 	userID, err := userIDFromRequest(r)
 	if err != nil {
