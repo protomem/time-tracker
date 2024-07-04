@@ -587,7 +587,7 @@ func (app *application) handleUserStats(w http.ResponseWriter, r *http.Request) 
 			if opts.After != nil && session.Begin.After(*opts.After) {
 				session.Begin = *opts.After
 			}
-			if session.End == nil || session.End.After(*opts.Before) {
+			if session.End == nil || (opts.Before != nil && session.End.After(*opts.Before)) {
 				session.End = new(time.Time)
 				if opts.Before != nil {
 					*session.End = *opts.Before

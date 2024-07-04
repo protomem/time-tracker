@@ -33,7 +33,7 @@ func timeQueryParams(r *http.Request, key string, layout ...string) (time.Time, 
 	val = strings.TrimSuffix(val, "'")
 	val = strings.TrimSuffix(val, "\"")
 	t, err := time.Parse(layout[0], val)
-	return t, true, err
+	return t, ok, err
 }
 
 func defaultIntQueryParams(r *http.Request, key string, def int) int {
