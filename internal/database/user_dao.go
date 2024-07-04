@@ -125,6 +125,41 @@ type InsertUserDTO struct {
 	Address        string
 }
 
+func NewInsertDTO(
+	name string, surname string,
+	passportSerie int, passportNumber int,
+	address string,
+) InsertUserDTO {
+	return InsertUserDTO{
+		Name:           name,
+		Surname:        surname,
+		Patronymic:     nil,
+		PassportSerie:  passportSerie,
+		PassportNumber: passportNumber,
+		Address:        address,
+	}
+}
+
+func NewInsertDTOWithPatronymic(
+	name string, surname string, patronymic string,
+	passportSerie int, passportNumber int,
+	address string,
+) InsertUserDTO {
+	return InsertUserDTO{
+		Name:           name,
+		Surname:        surname,
+		Patronymic:     &patronymic,
+		PassportSerie:  passportSerie,
+		PassportNumber: passportNumber,
+		Address:        address,
+	}
+}
+
+func (dto *InsertUserDTO) SetPatronymic(patronymic string) {
+	dto.Patronymic = new(string)
+	*dto.Patronymic = patronymic
+}
+
 func (dao *UserDAO) Insert(ctx context.Context, dto InsertUserDTO) (model.ID, error) {
 	logger := dao.Logger.With("query", "insert")
 

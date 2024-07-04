@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"slices"
 	"strconv"
@@ -108,7 +110,7 @@ func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 	var v validator.Validator
 	v.CheckField(validator.NotBlank(input.PassportNumber), "passportNumber", "cannot be blank")
 
-	passportNumber, passportSerie, err := parsePassportNumber(input.PassportNumber)
+	passportSerie, passportNumber, err := parsePassportNumber(input.PassportNumber)
 	if err != nil {
 		// TODO: bad request -> failed validation
 		app.badRequest(w, r, err)
@@ -123,50 +125,15 @@ func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handlerLogger.Debug("read params and body", "passportNumber", passportNumber, "passportSerie", passportSerie)
+	handlerLogger.Debug("read params and body", "passportSerie", passportSerie, "passportNumber", passportNumber)
 
-	peopleClient, err := people_service.NewClient(app.config.peopleServ.serverURL)
+	people, err := fetchPeople(ctx, baseLogger, app.config.peopleServ.serverURL, passportSerie, passportNumber)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
 
-	handlerLogger.Debug("create connection to people service", "addr", app.config.peopleServ.serverURL)
-
-	infoPeopleReq, err := peopleClient.InfoGet(ctx, people_service.InfoGetParams{
-		PassportSerie:  passportSerie,
-		PassportNumber: passportNumber,
-	})
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	people, ok := infoPeopleReq.(*people_service.People)
-	if !ok {
-		// TODO: Handle errors
-		app.serverError(w, r, errors.New("invalid response from people service"))
-		return
-	}
-
-	handlerLogger.Debug("get user from people service", "user", people)
-
-	insertDTO := database.InsertUserDTO{
-		Name:           people.GetName(),
-		Surname:        people.GetSurname(),
-		PassportNumber: passportNumber,
-		PassportSerie:  passportSerie,
-		Address:        people.GetAddress(),
-	}
-
-	if people.GetPatronymic().Set {
-		insertDTO.Patronymic = new(string)
-		*insertDTO.Patronymic = people.GetPatronymic().Value
-	}
-
-	dao := database.NewUserDAO(baseLogger, app.db)
-
-	userID, err := dao.Insert(ctx, insertDTO)
+	user, err := insertUser(ctx, app.db, baseLogger, people, passportSerie, passportNumber)
 	if err != nil {
 		if errors.Is(err, model.ErrExists) {
 			app.errorMessage(w, r, http.StatusConflict, err.Error(), nil)
@@ -177,13 +144,7 @@ func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := dao.Get(ctx, userID)
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	handlerLogger.Debug("user inserted", "user", user)
+	handlerLogger.Debug("inserted user", "userId", user.ID)
 
 	if err := response.JSON(w, http.StatusCreated, responseAddUser{User: user}); err != nil {
 		app.serverError(w, r, err)
@@ -198,7 +159,7 @@ type responseAddUser struct {
 	User model.User `json:"user"`
 }
 
-func parsePassportNumber(s string) (passportNumber int, passportSerie int, err error) {
+func parsePassportNumber(s string) (passportSerie int, passportNumber int, err error) {
 	parts := strings.Split(s, " ")
 	if len(parts) != 2 {
 		return 0, 0, errors.New("invalid passport number")
@@ -212,6 +173,69 @@ func parsePassportNumber(s string) (passportNumber int, passportSerie int, err e
 	}
 
 	return
+}
+
+func fetchPeople(
+	ctx context.Context, logger *slog.Logger, addr string,
+	passportSerie int, passportNumber int,
+) (*people_service.People, error) {
+	logger.Debug("connect to people service", "addr", addr)
+
+	client, err := people_service.NewClient(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Debug("do people request", "passportSerie", passportSerie, "passportNumber", passportNumber)
+
+	infoPeopleReq, err := client.InfoGet(ctx, people_service.InfoGetParams{
+		PassportSerie:  passportSerie,
+		PassportNumber: passportNumber,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	people, ok := infoPeopleReq.(*people_service.People)
+	if !ok {
+		return nil, fmt.Errorf("invalid response from people service: %T", infoPeopleReq)
+	}
+
+	logger.Debug("fetch people", "people", people)
+
+	return people, nil
+}
+
+func insertUser(
+	ctx context.Context, db *database.DB, logger *slog.Logger,
+	people *people_service.People, passportSerie int, passportNumber int,
+) (model.User, error) {
+	dao := database.NewUserDAO(logger, db)
+
+	insertDTO := database.NewInsertDTO(
+		people.GetName(), people.GetSurname(),
+		passportSerie, passportNumber,
+		people.GetAddress(),
+	)
+	if people.GetPatronymic().Set {
+		insertDTO.SetPatronymic(people.GetPatronymic().Value)
+	}
+
+	userID, err := dao.Insert(ctx, insertDTO)
+	if err != nil {
+		if errors.Is(err, model.ErrExists) {
+			return model.User{}, model.NewError("user", model.ErrExists)
+		}
+
+		return model.User{}, err
+	}
+
+	user, err := dao.Get(ctx, userID)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	return user, nil
 }
 
 // Handle Update User
