@@ -415,6 +415,53 @@ func deleteUser(
 	return nil
 }
 
+// Handle Show Sessions
+//
+//	@Summary		Show Sessions
+//	@Description	Get all user sessions
+//	@Tags			sessions
+//	@Produce		json
+//	@Param			userId	path	int	true	"User ID"
+//	@Success		200		{object}	[]model.Session
+//	@Failure		400		{object}	any	"Bad request input"
+//	@Failure		404		{object}	any	"User not found"
+//	@Failure		500		{object}	any	"Internal server error"
+//	@Router			/sessions/{userId} [get]
+func (app *application) handleShowSessions(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	baseLogger, handlerLogger := app.buildHandlerLoggers(r, "sessionStart")
+
+	userID, err := userIDFromRequest(r)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	handlerLogger.Debug("read params and body", "userId", userID)
+
+	if err := checkUserExists(ctx, app.db, baseLogger, userID); err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			app.errorMessage(w, r, http.StatusNotFound, err.Error(), nil)
+			return
+		}
+
+		app.serverError(w, r, err)
+		return
+	}
+
+	// TODO: Sort sessions
+
+	sessions, err := findSessions(ctx, app.db, baseLogger, userID, database.SessionTimelineOptions{})
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	if err := response.JSON(w, http.StatusOK, sessions); err != nil {
+		app.serverError(w, r, err)
+	}
+}
+
 // Handle Session Start
 //
 //	@Summary		Start Session
@@ -702,7 +749,7 @@ func mapSessionsToUserFormatStats(sessions []model.Session, opts database.Sessio
 	})
 
 	slices.SortFunc(stats, func(a, b userStat) int {
-        return cmp.Compare(a.Time, b.Time)
+		return cmp.Compare(a.Time, b.Time)
 	})
 
 	return lo.Map(stats, func(session userStat, _ int) userFormatStat {

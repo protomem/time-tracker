@@ -39,6 +39,7 @@ func (app *application) routes() http.Handler {
 
 	mux.Get("/api/v1/users/{userId}/stats", app.handleUserStats)
 
+    mux.Get("/api/v1/sessions/{userId}", app.handleShowSessions)
 	mux.Post("/api/v1/sessions/{userId}/{taskId}", app.handleSessionStart)
 	mux.Delete("/api/v1/sessions/{userId}/{taskId}", app.handleSessionStop)
 

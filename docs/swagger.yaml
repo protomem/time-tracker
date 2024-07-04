@@ -43,6 +43,23 @@ definitions:
       time:
         type: string
     type: object
+  model.Session:
+    properties:
+      begin:
+        type: string
+      createdAt:
+        type: string
+      end:
+        type: string
+      id:
+        type: integer
+      taskId:
+        type: integer
+      updatedAt:
+        type: string
+      userId:
+        type: integer
+    type: object
   model.User:
     properties:
       address:
@@ -78,6 +95,39 @@ definitions:
 info:
   contact: {}
 paths:
+  /sessions/{userId}:
+    get:
+      description: Get all user sessions
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Session'
+            type: array
+        "400":
+          description: Bad request input
+          schema:
+            type: object
+        "404":
+          description: User not found
+          schema:
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            type: object
+      summary: Show Sessions
+      tags:
+      - sessions
   /sessions/{userId}/{taskId}:
     delete:
       description: Stop session
