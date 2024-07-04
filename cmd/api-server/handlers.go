@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/protomem/time-tracker/internal/ctxstore"
 	"github.com/protomem/time-tracker/internal/database"
 	"github.com/protomem/time-tracker/internal/external_api/people_service"
 	"github.com/protomem/time-tracker/internal/model"
@@ -60,11 +59,7 @@ func (app *application) handleStatus(w http.ResponseWriter, r *http.Request) {
 //	@Router			/users [get]
 func (app *application) handleShowUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
-	handlerLogger := app.serverLogger(
-		"handler", "showUsers",
-		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
-	)
+	baseLogger, handlerLogger := app.buildHandlerLoggers(r, "showUsers")
 
 	// TODO: Add validation
 
@@ -121,11 +116,7 @@ type responseShowUsers struct {
 //	@Router			/users [post]
 func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
-	handlerLogger := app.serverLogger().With(
-		"handler", "addUser",
-		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
-	)
+	baseLogger, handlerLogger := app.buildHandlerLoggers(r, "addUser")
 
 	var input requestAddUser
 	if err := request.DecodeJSONStrict(w, r, &input); err != nil {
@@ -260,11 +251,7 @@ func parsePassportNumber(s string) (passportNumber int, passportSerie int, err e
 //	@Router			/users/{userId} [put]
 func (app *application) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
-	handlerLogger := app.serverLogger(
-		"handler", "updateUser",
-		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
-	)
+	baseLogger, handlerLogger := app.buildHandlerLoggers(r, "updateUser")
 
 	userID, err := userIDFromRequest(r)
 	if err != nil {
@@ -358,11 +345,7 @@ type responseUpdateUser struct {
 //	@Router			/users/{userId} [delete]
 func (app *application) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
-	handlerLogger := app.serverLogger().With(
-		"handler", "updateUser",
-		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
-	)
+	baseLogger, handlerLogger := app.buildHandlerLoggers(r, "deleteUser")
 
 	userID, err := userIDFromRequest(r)
 	if err != nil {
@@ -411,11 +394,7 @@ func (app *application) handleDeleteUser(w http.ResponseWriter, r *http.Request)
 //	@Router			/sessions/{userId}/{taskId} [post]
 func (app *application) handleSessionStart(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
-	handlerLogger := app.serverLogger().With(
-		"handler", "updateUser",
-		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
-	)
+	baseLogger, handlerLogger := app.buildHandlerLoggers(r, "sessionStart")
 
 	userID, err := userIDFromRequest(r)
 	if err != nil {
@@ -482,11 +461,7 @@ func (app *application) handleSessionStart(w http.ResponseWriter, r *http.Reques
 //	@Router			/sessions/{userId}/{taskId} [delete]
 func (app *application) handleSessionStop(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
-	handlerLogger := app.serverLogger(
-		"handler", "updateUser",
-		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
-	)
+	baseLogger, handlerLogger := app.buildHandlerLoggers(r, "sessionStop")
 
 	userID, err := userIDFromRequest(r)
 	if err != nil {
@@ -550,11 +525,7 @@ func (app *application) handleSessionStop(w http.ResponseWriter, r *http.Request
 //	@Router			/users/{userId}/stats [get]
 func (app *application) handleUserStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	baseLogger := app.baseLogger.With(_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey))
-	handlerLogger := app.serverLogger(
-		"handler", "updateUser",
-		_traceIDKey.String(), ctxstore.MustFrom[string](ctx, _traceIDKey),
-	)
+	baseLogger, handlerLogger := app.buildHandlerLoggers(r, "userStats")
 
 	userID, err := userIDFromRequest(r)
 	if err != nil {

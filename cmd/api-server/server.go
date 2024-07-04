@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/protomem/time-tracker/internal/ctxstore"
 )
 
 const (
@@ -66,6 +68,13 @@ func (app *application) serveHTTP() error {
 func (app *application) serverLogger(args ...any) *slog.Logger {
 	args = append(args, "module", "server")
 	return app.baseLogger.With(args...)
+}
+
+func (app *application) buildHandlerLoggers(r *http.Request, handlerName string) (base *slog.Logger, handler *slog.Logger) {
+	tid := ctxstore.MustFrom[string](r.Context(), _traceIDKey)
+	baseArgs := []any{_traceIDKey.String(), tid}
+	handlerArgs := append(baseArgs, "handler", handlerName)
+	return app.baseLogger.With(baseArgs...), app.serverLogger(handlerArgs...)
 }
 
 func fmtHTTPAddr(host string, port int) string {
