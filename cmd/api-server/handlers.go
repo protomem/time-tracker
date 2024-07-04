@@ -376,9 +376,7 @@ func (app *application) handleDeleteUser(w http.ResponseWriter, r *http.Request)
 
 	handlerLogger.Debug("read params and body", "userId", userID)
 
-	dao := database.NewUserDAO(baseLogger, app.db)
-
-	if _, err := dao.Get(ctx, userID); err != nil {
+	if err := deleteUser(ctx, app.db, baseLogger, userID); err != nil {
 		if errors.Is(err, model.ErrNotFound) {
 			app.errorMessage(w, r, http.StatusNotFound, err.Error(), nil)
 			return
@@ -388,16 +386,32 @@ func (app *application) handleDeleteUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	handlerLogger.Debug("check if user exists", "userId", userID)
+	w.WriteHeader(http.StatusNoContent)
+}
 
-	if err := dao.Delete(ctx, userID); err != nil {
-		app.serverError(w, r, err)
-		return
+func deleteUser(
+	ctx context.Context, db *database.DB, logger *slog.Logger,
+	userID model.ID,
+) error {
+	dao := database.NewUserDAO(logger, db)
+
+	logger.Debug("check exists user", "userId", userID)
+
+	if _, err := dao.Get(ctx, userID); err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			return model.NewError("user", model.ErrNotFound)
+		}
+
+		return err
 	}
 
-	handlerLogger.Debug("user deleted", "userId", userID)
+	logger.Debug("delete user", "userId", userID)
 
-	w.WriteHeader(http.StatusNoContent)
+	if err := dao.Delete(ctx, userID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Handle Session Start
