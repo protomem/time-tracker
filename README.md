@@ -54,7 +54,7 @@ cd time-tracker
   - База данных доступна по `localhost:5432`
   - Mock People Service доступен по `localhost:8081`
   - Логи в формате JSON
-  - Атоматическая миграция
+  - Автоматическая миграция
 
 ```bash
 make run/stage
@@ -80,9 +80,9 @@ make run/local/live
 
 ### Отдельные сервисы
 
-- Отдельный запуск базы данных в контейнере: `make run/stage/db`
-- Отдельный запуск mock-people-service в контейнере: `make run/stage/mock-people-service`
-- Отдельный запуск mock-people-service в локальном режиме: `make run/local/mock-people-service`
+- Запуск базы данных в контейнере: `make run/stage/db`
+- Запуск mock-people-service в контейнере: `make run/stage/mock-people-service`
+- Запуск mock-people-service в локальном режиме: `make run/local/mock-people-service`
 
 ## Миграции
 
