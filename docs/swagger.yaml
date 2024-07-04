@@ -19,23 +19,6 @@ definitions:
       surname:
         type: string
     type: object
-  main.responseAddUser:
-    properties:
-      user:
-        $ref: '#/definitions/model.User'
-    type: object
-  main.responseFindUsers:
-    properties:
-      users:
-        items:
-          $ref: '#/definitions/model.User'
-        type: array
-    type: object
-  main.responseUpdateUser:
-    properties:
-      user:
-        $ref: '#/definitions/model.User'
-    type: object
   main.userFormatStat:
     properties:
       task:
@@ -258,7 +241,9 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.responseFindUsers'
+            items:
+              $ref: '#/definitions/model.User'
+            type: array
         "400":
           description: Bad request
           schema:
@@ -291,7 +276,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/main.responseAddUser'
+            $ref: '#/definitions/model.User'
         "400":
           description: Bad request input
           schema:
@@ -362,7 +347,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.responseUpdateUser'
+            $ref: '#/definitions/model.User'
         "400":
           description: Bad request
           schema:

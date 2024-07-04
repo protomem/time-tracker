@@ -50,7 +50,7 @@ func (app *application) handleStatus(w http.ResponseWriter, r *http.Request) {
 //	@Param			address			query		string	false	"User address"
 //	@Param			passportSerie	query		int		false	"User passport serie"
 //	@Param			passportNumber	query		int		false	"User passport number"
-//	@Success		200				{object}	main.responseFindUsers
+//	@Success		200				{array}	model.User
 //	@Failure		400				{object}	any					"Bad request"
 //	@Failure		422				{object}	validator.Validator	"Invalid input data"
 //	@Failure		500				{object}	any					"Internal server error"
@@ -74,7 +74,7 @@ func (app *application) handleFindUsers(w http.ResponseWriter, r *http.Request) 
 
 	handlerLogger.Debug("users found", "count", len(users))
 
-	if err := response.JSON(w, http.StatusOK, responseFindUsers{Users: users}); err != nil {
+	if err := response.JSON(w, http.StatusOK, users); err != nil {
 		app.serverError(w, r, err)
 	}
 }
@@ -93,10 +93,6 @@ func findUsers(
 	return users, nil
 }
 
-type responseFindUsers struct {
-	Users []model.User `json:"users"`
-}
-
 // Handle Add User
 //
 //	@Summary		Add User
@@ -105,7 +101,7 @@ type responseFindUsers struct {
 //	@Accept			json
 //	@Produce		json
 //	@Param			input	body		main.requestAddUser	true	"Passport serie and number"
-//	@Success		201		{object}	main.responseAddUser
+//	@Success		201		{object}	model.User
 //	@Failure		400		{object}	any					"Bad request input"
 //	@Failure		409		{object}	any					"User already exists"
 //	@Failure		422		{object}	validator.Validator	"Invalid input data"
@@ -160,17 +156,13 @@ func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 
 	handlerLogger.Debug("inserted user", "userId", user.ID)
 
-	if err := response.JSON(w, http.StatusCreated, responseAddUser{User: user}); err != nil {
+	if err := response.JSON(w, http.StatusCreated, user); err != nil {
 		app.serverError(w, r, err)
 	}
 }
 
 type requestAddUser struct {
 	PassportNumber string `json:"passportNumber"`
-}
-
-type responseAddUser struct {
-	User model.User `json:"user"`
 }
 
 func parsePassportNumber(s string) (passportSerie int, passportNumber int, err error) {
@@ -261,7 +253,7 @@ func insertUser(
 //	@Produce		json
 //	@Param			userId	path		int						true	"User ID"
 //	@Param			input	body		main.requestUpdateUser	true	"New user data"
-//	@Success		200		{object}	main.responseUpdateUser
+//	@Success		200		{object} model.User	
 //	@Failure		400		{object}	any					"Bad request"
 //	@Failure		404		{object}	any					"User not found"
 //	@Failure		409		{object}	any					"User already exists"
@@ -316,7 +308,7 @@ func (app *application) handleUpdateUser(w http.ResponseWriter, r *http.Request)
 
 	handlerLogger.Debug("user updated", "updatedUserId", user.ID)
 
-	if err := response.JSON(w, http.StatusOK, responseUpdateUser{User: user}); err != nil {
+	if err := response.JSON(w, http.StatusOK, user); err != nil {
 		app.serverError(w, r, err)
 	}
 }
@@ -328,10 +320,6 @@ type requestUpdateUser struct {
 	PassportSerie  *int    `json:"passportSerie"`
 	PassportNumber *int    `json:"passportNumber"`
 	Address        *string `json:"address"`
-}
-
-type responseUpdateUser struct {
-	User model.User `json:"user"`
 }
 
 func updateUser(

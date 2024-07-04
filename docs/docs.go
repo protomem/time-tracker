@@ -259,7 +259,10 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.responseFindUsers"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.User"
+                            }
                         }
                     },
                     "400": {
@@ -309,7 +312,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/main.responseAddUser"
+                            "$ref": "#/definitions/model.User"
                         }
                     },
                     "400": {
@@ -374,7 +377,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.responseUpdateUser"
+                            "$ref": "#/definitions/model.User"
                         }
                     },
                     "400": {
@@ -544,33 +547,6 @@ const docTemplate = `{
                 },
                 "surname": {
                     "type": "string"
-                }
-            }
-        },
-        "main.responseAddUser": {
-            "type": "object",
-            "properties": {
-                "user": {
-                    "$ref": "#/definitions/model.User"
-                }
-            }
-        },
-        "main.responseFindUsers": {
-            "type": "object",
-            "properties": {
-                "users": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/model.User"
-                    }
-                }
-            }
-        },
-        "main.responseUpdateUser": {
-            "type": "object",
-            "properties": {
-                "user": {
-                    "$ref": "#/definitions/model.User"
                 }
             }
         },
