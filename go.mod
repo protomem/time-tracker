@@ -1,6 +1,6 @@
 module github.com/protomem/time-tracker
 
-go 1.21.0
+go 1.22.4
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
