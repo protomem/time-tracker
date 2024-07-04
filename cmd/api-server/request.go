@@ -36,16 +36,16 @@ func timeQueryParams(r *http.Request, key string, layout ...string) (time.Time, 
 	return t, ok, err
 }
 
-func defaultIntQueryParams(r *http.Request, key string, def int) int {
+func defaultUintQueryParams(r *http.Request, key string, def uint64) uint64 {
 	val, ok := r.URL.Query().Get(key), r.URL.Query().Has(key)
 	if !ok {
 		return def
 	}
-	i, err := strconv.Atoi(val)
+	uintVal, err := strconv.ParseUint(val, 10, 64)
 	if err != nil {
 		return def
 	}
-	return i
+	return uintVal
 }
 
 func optionalStringQueryParams(r *http.Request, key string) *string {

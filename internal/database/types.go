@@ -1,6 +1,6 @@
 package database
 
 type FindOptions struct {
-	Limit  int
-	Offset int
+	Limit  uint64
+	Offset uint64
 }

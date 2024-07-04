@@ -63,8 +63,8 @@ func (app *application) handleShowUsers(w http.ResponseWriter, r *http.Request) 
 
 	// TODO: Add validation
 
-	page := defaultIntQueryParams(r, "page", _defaultPage)
-	pageSize := defaultIntQueryParams(r, "pageSize", _defaultPageSize)
+	page := defaultUintQueryParams(r, "page", _defaultPage)
+	pageSize := defaultUintQueryParams(r, "pageSize", _defaultPageSize)
 
 	opts := database.FindOptions{
 		Limit:  pageSize,
