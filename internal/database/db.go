@@ -45,7 +45,7 @@ func New(logger *slog.Logger, dsn string, automigrate bool) (*DB, error) {
 	db.SetConnMaxIdleTime(5 * time.Minute)
 	db.SetConnMaxLifetime(2 * time.Hour)
 
-	logger.Info("connect to database", "dsn", dsn) // TODO: hide credentials
+	logger.Info("connect to database", "dsn", dsn)
 
 	if automigrate {
 		iofsDriver, err := iofs.New(assets.EmbeddedFiles, "migrations")

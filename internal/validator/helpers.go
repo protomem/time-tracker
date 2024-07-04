@@ -87,7 +87,6 @@ func IsURL(value string) bool {
 }
 
 func DigitsInNumber(num int, n int) bool {
-	// TODO: better comparison
 	numStr := strconv.Itoa(num)
 	return len(numStr) == n
 }

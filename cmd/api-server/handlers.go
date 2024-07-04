@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -701,7 +702,7 @@ func mapSessionsToUserFormatStats(sessions []model.Session, opts database.Sessio
 	})
 
 	slices.SortFunc(stats, func(a, b userStat) int {
-		return int(b.Time - a.Time) // TODO: Change to duration comparison
+        return cmp.Compare(a.Time, b.Time)
 	})
 
 	return lo.Map(stats, func(session userStat, _ int) userFormatStat {
