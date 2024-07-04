@@ -8,19 +8,28 @@ import (
 	"runtime/debug"
 	"sync"
 
+	"github.com/lmittmann/tint"
 	"github.com/protomem/time-tracker/internal/database"
 	"github.com/protomem/time-tracker/internal/env"
 	"github.com/protomem/time-tracker/internal/version"
 )
 
-var _cfgFile = flag.String("cfg", "", "path to config file")
+var (
+	_cfgFile   = flag.String("cfg", "", "path to config file")
+	_prettyLog = flag.Bool("prettyLog", false, "pretty log output")
+)
 
 func init() {
 	flag.Parse()
 }
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	var logger *slog.Logger
+	if *_prettyLog {
+		logger = newPrettyLogger()
+	} else {
+		logger = newJSONLogger()
+	}
 
 	err := run(logger)
 	if err != nil {
@@ -53,8 +62,7 @@ func run(logger *slog.Logger) error {
 	var cfg config
 
 	if *_cfgFile != "" {
-		err := env.Load(*_cfgFile)
-		if err != nil {
+		if err := env.Load(*_cfgFile); err != nil {
 			return err
 		}
 	}
@@ -87,4 +95,12 @@ func run(logger *slog.Logger) error {
 	}
 
 	return app.serveHTTP()
+}
+
+func newJSONLogger() *slog.Logger {
+	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+}
+
+func newPrettyLogger() *slog.Logger {
+	return slog.New((tint.NewHandler(os.Stdout, &tint.Options{Level: slog.LevelDebug})))
 }

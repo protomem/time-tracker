@@ -13,6 +13,7 @@ require (
 	github.com/jackc/pgx/v5 v5.5.4
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/joho/godotenv v1.5.1
+	github.com/lmittmann/tint v1.0.4
 	github.com/ogen-go/ogen v1.2.2
 	github.com/rs/cors v1.11.0
 	github.com/samber/lo v1.44.0
