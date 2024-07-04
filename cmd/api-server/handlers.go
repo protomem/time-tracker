@@ -50,7 +50,7 @@ func (app *application) handleStatus(w http.ResponseWriter, r *http.Request) {
 //	@Param			address			query		string	false	"User address"
 //	@Param			passportSerie	query		int		false	"User passport serie"
 //	@Param			passportNumber	query		int		false	"User passport number"
-//	@Success		200				{array}	model.User
+//	@Success		200				{array}		model.User
 //	@Failure		400				{object}	any					"Bad request"
 //	@Failure		422				{object}	validator.Validator	"Invalid input data"
 //	@Failure		500				{object}	any					"Internal server error"
@@ -59,10 +59,15 @@ func (app *application) handleFindUsers(w http.ResponseWriter, r *http.Request) 
 	ctx := r.Context()
 	baseLogger, handlerLogger := app.buildHandlerLoggers(r, "findUsers")
 
-	// TODO: Add validation
-
 	opts := findOptionsFromRequest(r)
 	filter := findUserFilterFromRequest(r)
+
+	if v := validator.Validate(func(v *validator.Validator) {
+		validateFindUserFilter(v, filter)
+	}); v.HasErrors() {
+		app.failedValidation(w, r, v)
+		return
+	}
 
 	handlerLogger.Debug("read params and body", "filter", filter, "opts", opts)
 
@@ -117,20 +122,21 @@ func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var v validator.Validator
-	v.CheckField(validator.NotBlank(input.PassportNumber), "passportNumber", "cannot be blank")
+	var (
+		err                           error
+		passportSerie, passportNumber int
+	)
 
-	passportSerie, passportNumber, err := parsePassportNumber(input.PassportNumber)
-	if err != nil {
-		// TODO: bad request -> failed validation
-		app.badRequest(w, r, err)
-		return
-	}
+	if v := validator.Validate(func(v *validator.Validator) {
+		passportSerie, passportNumber, err = parsePassportNumber(input.PassportNumber)
+		if err != nil {
+			v.AddFieldError("passportNumber", err.Error())
+			return
+		}
 
-	v.Check(validator.DigitsInNumber(passportSerie, 4), "Passport serie is not valid")
-	v.Check(validator.DigitsInNumber(passportNumber, 6), "Passport number is not valid")
-
-	if v.HasErrors() {
+		validatePassportSerie(v, passportSerie)
+		validatePassportNumber(v, passportNumber)
+	}); v.HasErrors() {
 		app.failedValidation(w, r, v)
 		return
 	}
@@ -142,6 +148,8 @@ func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 		app.serverError(w, r, err)
 		return
 	}
+
+	// TODO: Validate people ?
 
 	user, err := insertUser(ctx, app.db, baseLogger, people, passportSerie, passportNumber)
 	if err != nil {
@@ -168,14 +176,14 @@ type requestAddUser struct {
 func parsePassportNumber(s string) (passportSerie int, passportNumber int, err error) {
 	parts := strings.Split(s, " ")
 	if len(parts) != 2 {
-		return 0, 0, errors.New("invalid passport number")
+		return 0, 0, errors.New("invalid passport data")
 	}
 
 	if passportSerie, err = strconv.Atoi(parts[0]); err != nil {
-		return 0, 0, fmt.Errorf("invalid passport serie: %w", err)
+		return 0, 0, fmt.Errorf("invalid passport serie: not a number")
 	}
 	if passportNumber, err = strconv.Atoi(parts[1]); err != nil {
-		return 0, 0, fmt.Errorf("invalid passport number: %w", err)
+		return 0, 0, fmt.Errorf("invalid passport number: not a number")
 	}
 
 	return
@@ -253,7 +261,7 @@ func insertUser(
 //	@Produce		json
 //	@Param			userId	path		int						true	"User ID"
 //	@Param			input	body		main.requestUpdateUser	true	"New user data"
-//	@Success		200		{object} model.User	
+//	@Success		200		{object}	model.User
 //	@Failure		400		{object}	any					"Bad request"
 //	@Failure		404		{object}	any					"User not found"
 //	@Failure		409		{object}	any					"User already exists"
@@ -277,18 +285,9 @@ func (app *application) handleUpdateUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var v validator.Validator
-	// TODO: Add more validation rules
-
-	// TODO: Add better error messages
-	if input.PassportSerie != nil {
-		v.CheckField(validator.DigitsInNumber(*input.PassportSerie, 4), "passportSerie", "is not valid")
-	}
-	if input.PassportNumber != nil {
-		v.CheckField(validator.DigitsInNumber(*input.PassportNumber, 6), "passportNumber", "is not valid")
-	}
-
-	if v.HasErrors() {
+	if v := validator.Validate(func(v *validator.Validator) {
+		validateRequestUpdateUser(v, input)
+	}); v.HasErrors() {
 		app.failedValidation(w, r, v)
 		return
 	}

@@ -56,7 +56,7 @@ func (app *application) badRequest(w http.ResponseWriter, r *http.Request, err e
 	app.errorMessage(w, r, http.StatusBadRequest, err.Error(), nil)
 }
 
-func (app *application) failedValidation(w http.ResponseWriter, r *http.Request, v validator.Validator) {
+func (app *application) failedValidation(w http.ResponseWriter, r *http.Request, v *validator.Validator) {
 	err := response.JSON(w, http.StatusUnprocessableEntity, v)
 	if err != nil {
 		app.serverError(w, r, err)

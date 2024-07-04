@@ -30,7 +30,7 @@ func (app *application) routes() http.Handler {
 
 	mux.Use(app.CORS)
 
-    mux.Handle("/", http.RedirectHandler("/swagger/", http.StatusFound))
+	mux.Handle("/", http.RedirectHandler("/swagger/", http.StatusFound))
 
 	mux.Get("/api/v1/status", app.handleStatus)
 

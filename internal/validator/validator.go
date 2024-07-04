@@ -5,7 +5,11 @@ type Validator struct {
 	FieldErrors map[string]string `json:"fieldErrors,omitempty"`
 }
 
-func (v Validator) HasErrors() bool {
+func New() *Validator {
+	return &Validator{}
+}
+
+func (v *Validator) HasErrors() bool {
 	return len(v.Errors) != 0 || len(v.FieldErrors) != 0
 }
 
@@ -37,4 +41,10 @@ func (v *Validator) CheckField(ok bool, key, message string) {
 	if !ok {
 		v.AddFieldError(key, message)
 	}
+}
+
+func Validate(fn func(v *Validator)) *Validator {
+	v := New()
+	fn(v)
+	return v
 }
