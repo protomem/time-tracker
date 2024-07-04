@@ -533,10 +533,7 @@ func (app *application) handleSessionStop(w http.ResponseWriter, r *http.Request
 
 	handlerLogger.Debug("read params and body", "userId", userID, "taskId", taskID)
 
-	dao := database.NewSessionDAO(baseLogger, app.db)
-
-	session, err := dao.LastByTaskAndUser(ctx, taskID, userID)
-	if err != nil {
+	if _, err := updateSessionEnd(ctx, app.db, baseLogger, userID, taskID); err != nil {
 		if errors.Is(err, model.ErrNotFound) {
 			app.errorMessage(w, r, http.StatusNotFound, err.Error(), nil)
 			return
@@ -546,23 +543,46 @@ func (app *application) handleSessionStop(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if session.End != nil {
-		app.errorMessage(w, r, http.StatusNotFound, model.NewError("session", model.ErrNotFound).Error(), nil)
-		return
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func updateSessionEnd(
+	ctx context.Context, db *database.DB, logger *slog.Logger,
+	userID model.ID, taskID model.ID,
+) (model.Session, error) {
+	dao := database.NewSessionDAO(logger, db)
+
+	logger.Debug("check exists and not ended session", "userId", userID, "taskId", taskID)
+
+	session, err := dao.LastByTaskAndUser(ctx, taskID, userID)
+	if err != nil || session.End != nil {
+		if errors.Is(err, model.ErrNotFound) || session.End != nil {
+			return model.Session{}, model.NewError("session", model.ErrNotFound)
+		}
+
+		return model.Session{}, err
 	}
 
-	handlerLogger.Debug("check if session exists and not ended", "sessionId", session.ID)
+	logger.Debug("update session", "userId", userID, "taskId", taskID)
 
 	if err := dao.Update(ctx, session.ID, database.UpdateSessionDTO{
 		End: time.Now(),
 	}); err != nil {
-		app.serverError(w, r, err)
-		return
+		return model.Session{}, err
 	}
 
-	handlerLogger.Debug("session updated", "sessionId", session.ID)
+	logger.Debug("get session", "sessionId", session.ID)
 
-	w.WriteHeader(http.StatusNoContent)
+	session, err = dao.Get(ctx, session.ID)
+	if err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			return model.Session{}, model.NewError("session", model.ErrNotFound)
+		}
+
+		return model.Session{}, err
+	}
+
+	return session, nil
 }
 
 // Handle User Stats
