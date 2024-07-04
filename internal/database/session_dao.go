@@ -57,6 +57,38 @@ func (dao *SessionDAO) FindByUser(ctx context.Context, user model.ID, opts Sessi
 	return sessions, nil
 }
 
+func (dao *SessionDAO) Get(ctx context.Context, id model.ID) (model.Session, error) {
+	logger := dao.Logger.With("query", "get")
+
+	query, args, err := dao.Builder.
+		Select("*").
+		From("sessions").
+		Where(squirrel.Eq{"id": id}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return model.Session{}, err
+	}
+
+	logger.Debug("build query", "sql", query, "args", args)
+
+	var session model.Session
+	row := dao.QueryRowxContext(ctx, query, args...)
+	if err := row.StructScan(&session); err != nil {
+		logger.Warn("failed query execute", "error", err)
+
+		if IsNoRows(err) {
+			return model.Session{}, model.NewError("session", model.ErrNotFound)
+		}
+
+		return model.Session{}, err
+	}
+
+	logger.Debug("success query execute", "session", session)
+
+	return session, nil
+}
+
 func (dao *SessionDAO) LastByTaskAndUser(ctx context.Context, task, user model.ID) (model.Session, error) {
 	logger := dao.Logger.With("query", "lastByTaskAndUser")
 
@@ -95,6 +127,14 @@ type InsertSessionDTO struct {
 	User  model.ID
 	Task  model.ID
 	Begin time.Time
+}
+
+func NewInsertSessionDTO(user model.ID, task model.ID) InsertSessionDTO {
+	return InsertSessionDTO{
+		User:  user,
+		Task:  task,
+		Begin: time.Now(),
+	}
 }
 
 func (dao *SessionDAO) Insert(ctx context.Context, dto InsertSessionDTO) (model.ID, error) {

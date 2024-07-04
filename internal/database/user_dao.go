@@ -125,7 +125,7 @@ type InsertUserDTO struct {
 	Address        string
 }
 
-func NewInsertDTO(
+func NewInsertUserDTO(
 	name string, surname string,
 	passportSerie int, passportNumber int,
 	address string,
@@ -140,15 +140,17 @@ func NewInsertDTO(
 	}
 }
 
-func NewInsertDTOWithPatronymic(
+func NewInsertUserDTOWithPatronymic(
 	name string, surname string, patronymic string,
 	passportSerie int, passportNumber int,
 	address string,
 ) InsertUserDTO {
+	copyPatronymic := new(string)
+	*copyPatronymic = patronymic
 	return InsertUserDTO{
 		Name:           name,
 		Surname:        surname,
-		Patronymic:     &patronymic,
+		Patronymic:     copyPatronymic,
 		PassportSerie:  passportSerie,
 		PassportNumber: passportNumber,
 		Address:        address,

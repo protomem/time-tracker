@@ -212,7 +212,7 @@ func insertUser(
 ) (model.User, error) {
 	dao := database.NewUserDAO(logger, db)
 
-	insertDTO := database.NewInsertDTO(
+	insertDTO := database.NewInsertUserDTO(
 		people.GetName(), people.GetSurname(),
 		passportSerie, passportNumber,
 		people.GetAddress(),
@@ -445,28 +445,7 @@ func (app *application) handleSessionStart(w http.ResponseWriter, r *http.Reques
 
 	handlerLogger.Debug("read params and body", "userId", userID, "taskId", taskID)
 
-	dao := database.NewSessionDAO(baseLogger, app.db)
-
-	session, err := dao.LastByTaskAndUser(ctx, taskID, userID)
-	if err != nil && !errors.Is(err, model.ErrNotFound) {
-		app.serverError(w, r, err)
-		return
-	}
-
-	if !errors.Is(err, model.ErrNotFound) && session.End == nil {
-		app.errorMessage(w, r, http.StatusConflict, model.NewError("session", model.ErrExists).Error(), nil)
-		return
-	}
-
-	handlerLogger.Debug("check if session exists and not ended", "sessionId", session.ID)
-
-	insertDTO := database.InsertSessionDTO{
-		User:  userID,
-		Task:  taskID,
-		Begin: time.Now(),
-	}
-
-	if _, err := dao.Insert(ctx, insertDTO); err != nil {
+	if _, err := insertSessionWithCheckExistsNotEnded(ctx, app.db, baseLogger, userID, taskID); err != nil {
 		if errors.Is(err, model.ErrExists) {
 			app.errorMessage(w, r, http.StatusConflict, err.Error(), nil)
 			return
@@ -476,9 +455,51 @@ func (app *application) handleSessionStart(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	handlerLogger.Debug("session inserted", "sessionId", session.ID)
-
 	w.WriteHeader(http.StatusCreated)
+}
+
+func insertSessionWithCheckExistsNotEnded(
+	ctx context.Context, db *database.DB, logger *slog.Logger,
+	userID model.ID, taskID model.ID,
+) (model.Session, error) {
+	dao := database.NewSessionDAO(logger, db)
+
+	logger.Debug("check exists and not ended session", "userId", userID, "taskId", taskID)
+
+	session, err := dao.LastByTaskAndUser(ctx, taskID, userID)
+	if err != nil && !errors.Is(err, model.ErrNotFound) {
+		return model.Session{}, err
+	}
+
+	if !errors.Is(err, model.ErrNotFound) && session.End == nil {
+		return model.Session{}, model.NewError("session", model.ErrExists)
+	}
+
+	logger.Debug("insert session", "userId", userID, "taskId", taskID)
+
+	dto := database.NewInsertSessionDTO(userID, taskID)
+
+	sessionID, err := dao.Insert(ctx, dto)
+	if err != nil {
+		if errors.Is(err, model.ErrExists) {
+			return model.Session{}, model.NewError("session", model.ErrExists)
+		}
+
+		return model.Session{}, err
+	}
+
+	logger.Debug("get session", "sessionId", sessionID)
+
+	session, err = dao.Get(ctx, sessionID)
+	if err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			return model.Session{}, model.NewError("session", model.ErrNotFound)
+		}
+
+		return model.Session{}, err
+	}
+
+	return session, nil
 }
 
 // Handle Session Stop
