@@ -609,85 +609,32 @@ func (app *application) handleUserStats(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	opts := database.SessionTimelineOptions{}
-
-	after, ok, err := timeQueryParams(r, "after")
+	opts, err := sessionTimelineOptionsFromRequest(r)
 	if err != nil {
 		app.badRequest(w, r, err)
 		return
-	}
-	if ok {
-		opts.After = &after
-	}
-
-	before, ok, err := timeQueryParams(r, "before")
-	if err != nil {
-		app.badRequest(w, r, err)
-		return
-	}
-	if ok {
-		now := time.Now()
-		if now.Before(before) {
-			before = now
-		}
-
-		opts.Before = &before
 	}
 
 	handlerLogger.Debug("read params and body", "userId", userID, "opts", opts)
 
-	userDAO := database.NewUserDAO(baseLogger, app.db)
-	if _, err := userDAO.Get(ctx, userID); err != nil {
+	if err := checkUserExists(ctx, app.db, baseLogger, userID); err != nil {
 		if errors.Is(err, model.ErrNotFound) {
 			app.errorMessage(w, r, http.StatusNotFound, err.Error(), nil)
 			return
 		}
 
-		app.serverError(w, r, err)
 		return
 	}
 
-	sessDAO := database.NewSessionDAO(baseLogger, app.db)
-	sessions, err := sessDAO.FindByUser(ctx, userID, opts)
+	sessions, err := findSessions(ctx, app.db, baseLogger, userID, opts)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
 
-	groupedSessions := lo.GroupBy(sessions, func(session model.Session) model.ID {
-		return session.Task
-	})
+	stats := mapSessionsToUserFormatStats(sessions, opts)
 
-	userStats := lo.MapToSlice(groupedSessions, func(task model.ID, sessions []model.Session) userStat {
-		sum := lo.SumBy(sessions, func(session model.Session) time.Duration {
-			if opts.After != nil && session.Begin.After(*opts.After) {
-				session.Begin = *opts.After
-			}
-			if session.End == nil || (opts.Before != nil && session.End.After(*opts.Before)) {
-				session.End = new(time.Time)
-				if opts.Before != nil {
-					*session.End = *opts.Before
-				} else {
-					*session.End = time.Now()
-				}
-			}
-			return session.End.Sub(session.Begin)
-		})
-		return userStat{
-			Task: task,
-			Time: sum,
-		}
-	})
-
-	slices.SortFunc(userStats, func(a, b userStat) int {
-		return int(b.Time - a.Time) // TODO: Change to duration comparison
-	})
-
-	userFormatStats := lo.Map(userStats, func(session userStat, _ int) userFormatStat {
-		return newUserFormatStat(session)
-	})
-
-	if err := response.JSON(w, http.StatusOK, userFormatStats); err != nil {
+	if err := response.JSON(w, http.StatusOK, stats); err != nil {
 		app.serverError(w, r, err)
 	}
 }
@@ -707,4 +654,76 @@ func newUserFormatStat(s userStat) userFormatStat {
 		Task: s.Task,
 		Time: s.Time.String(), // TODO: Pretty format
 	}
+}
+
+func checkUserExists(ctx context.Context, db *database.DB, logger *slog.Logger, userID model.ID) error {
+	dao := database.NewUserDAO(logger, db)
+
+	logger.Debug("check user exists", "userId", userID)
+
+	if _, err := dao.Get(ctx, userID); err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			return model.NewError("user", model.ErrNotFound)
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func findSessions(
+	ctx context.Context, db *database.DB, logger *slog.Logger,
+	userID model.ID, opts database.SessionTimelineOptions,
+) ([]model.Session, error) {
+	dao := database.NewSessionDAO(logger, db)
+
+	logger.Debug("find sessions", "userId", userID, "opts", opts)
+
+	sessions, err := dao.FindByUser(ctx, userID, opts)
+	if err != nil {
+		return []model.Session{}, err
+	}
+
+	return sessions, nil
+}
+
+func mapSessionsToUserFormatStats(sessions []model.Session, opts database.SessionTimelineOptions) []userFormatStat {
+	grouped := lo.GroupBy(sessions, func(session model.Session) model.ID {
+		return session.Task
+	})
+
+	stats := lo.MapToSlice(grouped, func(task model.ID, sessions []model.Session) userStat {
+		return userStat{
+			Task: task,
+			Time: calcSumSessions(sessions, opts),
+		}
+	})
+
+	slices.SortFunc(stats, func(a, b userStat) int {
+		return int(b.Time - a.Time) // TODO: Change to duration comparison
+	})
+
+	return lo.Map(stats, func(session userStat, _ int) userFormatStat {
+		return newUserFormatStat(session)
+	})
+}
+
+func calcSumSessions(sessions []model.Session, opts database.SessionTimelineOptions) time.Duration {
+	return lo.SumBy(sessions, func(session model.Session) time.Duration {
+		if opts.After != nil && session.Begin.After(*opts.After) {
+			session.Begin = *opts.After
+		}
+
+		if session.End == nil || (opts.Before != nil && session.End.After(*opts.Before)) {
+			session.End = new(time.Time)
+			if opts.Before != nil {
+				*session.End = *opts.Before
+			} else {
+				*session.End = time.Now()
+			}
+		}
+
+		return session.End.Sub(session.Begin)
+	})
 }

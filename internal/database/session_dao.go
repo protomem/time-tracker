@@ -47,7 +47,7 @@ func (dao *SessionDAO) FindByUser(ctx context.Context, user model.ID, opts Sessi
 		return []model.Session{}, err
 	}
 
-	dao.Logger.Debug("query", "sql", query, "args", args)
+	dao.Logger.Debug("build query", "sql", query, "args", args)
 
 	sessions := make([]model.Session, 0)
 	if err := dao.SelectContext(ctx, &sessions, query, args...); err != nil {

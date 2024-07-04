@@ -48,6 +48,33 @@ func findUserFilterFromRequest(r *http.Request) database.FindUserFilter {
 	}
 }
 
+func sessionTimelineOptionsFromRequest(r *http.Request) (database.SessionTimelineOptions, error) {
+	opts := database.SessionTimelineOptions{}
+
+	after, ok, err := timeQueryParams(r, "after")
+	if err != nil {
+		return database.SessionTimelineOptions{}, err
+	}
+	if ok {
+		opts.After = &after
+	}
+
+	before, ok, err := timeQueryParams(r, "before")
+	if err != nil {
+		return database.SessionTimelineOptions{}, err
+	}
+	if ok {
+		now := time.Now()
+		if now.Before(before) {
+			before = now
+		}
+
+		opts.Before = &before
+	}
+
+	return opts, nil
+}
+
 func timeQueryParams(r *http.Request, key string, layout ...string) (time.Time, bool, error) {
 	layout = append(layout, _customTimeLayout)
 	val, ok := r.URL.Query().Get(key), r.URL.Query().Has(key)
