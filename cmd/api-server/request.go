@@ -11,7 +11,6 @@ import (
 	"github.com/protomem/time-tracker/internal/model"
 )
 
-// const _customTimeLayout = "2006-01-02 15:04:05 MST"
 const _customTimeLayout = "01-02-2006 15:04 MST"
 
 const (
@@ -20,12 +19,12 @@ const (
 )
 
 func userIDFromRequest(r *http.Request) (model.ID, error) {
-	id, err := strconv.Atoi(chi.URLParam(r, "userId"))
+	id, err := strconv.ParseUint(chi.URLParam(r, "userId"), 10, 32)
 	return model.ID(id), err
 }
 
 func taskIDFromRequest(r *http.Request) (model.ID, error) {
-	id, err := strconv.Atoi(chi.URLParam(r, "taskId"))
+	id, err := strconv.ParseUint(chi.URLParam(r, "taskId"), 10, 32)
 	return model.ID(id), err
 }
 

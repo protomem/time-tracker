@@ -2,7 +2,7 @@ package model
 
 import "time"
 
-type ID = int
+type ID = uint
 
 type User struct {
 	ID        ID        `json:"id" db:"id"`
