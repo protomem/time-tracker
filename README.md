@@ -49,6 +49,13 @@ cd time-tracker
 
 ### Docker и Docker compose(рекомендуется)
 
+- Настройки по умолчанию
+  - Приложение доступно по `localhost:8080` или `0.0.0.0:8080`
+  - База данных доступна по `localhost:5432`
+  - Mock People Service доступен по `localhost:8081`
+  - Логи в формате JSON
+  - Атоматическая миграция
+
 ```bash
 make run/stage
 # или
@@ -62,6 +69,8 @@ docker compose down
 ```
 
 ### Локальный запуск(для разработки)
+
+- Запускает только приложение по адресу `localhost:8080` или `0.0.0.0:8080`
 
 ```bash
 make run/local
