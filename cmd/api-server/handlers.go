@@ -289,9 +289,8 @@ func (app *application) handleUpdateUser(w http.ResponseWriter, r *http.Request)
 
 	handlerLogger.Debug("read params and body", "userId", userID, "input", input)
 
-	dao := database.NewUserDAO(baseLogger, app.db)
-
-	if _, err := dao.Get(ctx, userID); err != nil {
+	user, err := updateUser(ctx, app.db, baseLogger, userID, input)
+	if err != nil {
 		if errors.Is(err, model.ErrNotFound) {
 			app.errorMessage(w, r, http.StatusNotFound, err.Error(), nil)
 			return
@@ -301,22 +300,7 @@ func (app *application) handleUpdateUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	handlerLogger.Debug("check if user exists", "userId", userID)
-
-	updateDTO := database.UpdateUserDTO(input)
-
-	if err := dao.Update(ctx, userID, updateDTO); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	user, err := dao.Get(ctx, userID)
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	handlerLogger.Debug("user updated", "newUser", user)
+	handlerLogger.Debug("user updated", "updatedUserId", user.ID)
 
 	if err := response.JSON(w, http.StatusOK, responseUpdateUser{User: user}); err != nil {
 		app.serverError(w, r, err)
@@ -334,6 +318,38 @@ type requestUpdateUser struct {
 
 type responseUpdateUser struct {
 	User model.User `json:"user"`
+}
+
+func updateUser(
+	ctx context.Context, db *database.DB, logger *slog.Logger,
+	userID model.ID, requestBody requestUpdateUser,
+) (model.User, error) {
+	dao := database.NewUserDAO(logger, db)
+
+	logger.Debug("check exists user", "userId", userID)
+
+	if _, err := dao.Get(ctx, userID); err != nil {
+		if errors.Is(err, model.ErrNotFound) {
+			return model.User{}, model.NewError("user", model.ErrNotFound)
+		}
+
+		return model.User{}, err
+	}
+
+	dto := database.UpdateUserDTO(requestBody)
+
+	if err := dao.Update(ctx, userID, dto); err != nil {
+		return model.User{}, err
+	}
+
+	user, err := dao.Get(ctx, userID)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	logger.Debug("update user", "userId", userID)
+
+	return user, nil
 }
 
 // Handle Delete User
