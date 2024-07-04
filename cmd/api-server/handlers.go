@@ -18,11 +18,6 @@ import (
 	"github.com/samber/lo"
 )
 
-const (
-	_defaultPage     = 1
-	_defaultPageSize = 10
-)
-
 // Handle Status
 //
 //	@Summary		Server Status
@@ -63,22 +58,8 @@ func (app *application) handleShowUsers(w http.ResponseWriter, r *http.Request) 
 
 	// TODO: Add validation
 
-	page := defaultUintQueryParams(r, "page", _defaultPage)
-	pageSize := defaultUintQueryParams(r, "pageSize", _defaultPageSize)
-
-	opts := database.FindOptions{
-		Limit:  pageSize,
-		Offset: pageSize * (page - 1),
-	}
-
-	filter := database.FindUserFilter{
-		Name:           optionalStringQueryParams(r, "name"),
-		Surname:        optionalStringQueryParams(r, "surname"),
-		Patronymic:     optionalStringQueryParams(r, "patronymic"),
-		PassportSerie:  optionalIntQueryParams(r, "passportSerie"),
-		PassportNumber: optionalIntQueryParams(r, "passportNumber"),
-		Address:        optionalStringQueryParams(r, "address"),
-	}
+	opts := findOptionsFromRequest(r)
+	filter := findUserFilterFromRequest(r)
 
 	handlerLogger.Debug("read params and body", "filter", filter, "opts", opts)
 

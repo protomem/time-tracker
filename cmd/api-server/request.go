@@ -7,10 +7,16 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/protomem/time-tracker/internal/database"
 	"github.com/protomem/time-tracker/internal/model"
 )
 
 const _customTimeLayout = "2006-01-02 15:04:05 MST"
+
+const (
+	_defaultPage     = 1
+	_defaultPageSize = 10
+)
 
 func userIDFromRequest(r *http.Request) (model.ID, error) {
 	id, err := strconv.Atoi(chi.URLParam(r, "userId"))
@@ -20,6 +26,26 @@ func userIDFromRequest(r *http.Request) (model.ID, error) {
 func taskIDFromRequest(r *http.Request) (model.ID, error) {
 	id, err := strconv.Atoi(chi.URLParam(r, "taskId"))
 	return model.ID(id), err
+}
+
+func findOptionsFromRequest(r *http.Request) database.FindOptions {
+	page := defaultUintQueryParams(r, "page", _defaultPage)
+	pageSize := defaultUintQueryParams(r, "pageSize", _defaultPageSize)
+	return database.FindOptions{
+		Limit:  pageSize,
+		Offset: (page - 1) * pageSize,
+	}
+}
+
+func findUserFilterFromRequest(r *http.Request) database.FindUserFilter {
+	return database.FindUserFilter{
+		Name:           optionalStringQueryParams(r, "name"),
+		Surname:        optionalStringQueryParams(r, "surname"),
+		Patronymic:     optionalStringQueryParams(r, "patronymic"),
+		Address:        optionalStringQueryParams(r, "address"),
+		PassportSerie:  optionalIntQueryParams(r, "passportSerie"),
+		PassportNumber: optionalIntQueryParams(r, "passportNumber"),
+	}
 }
 
 func timeQueryParams(r *http.Request, key string, layout ...string) (time.Time, bool, error) {
