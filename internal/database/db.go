@@ -33,7 +33,6 @@ func New(logger *slog.Logger, dsn string, automigrate bool) (*DB, error) {
 	defer cancel()
 
 	logger = logger.With("module", "database")
-	dsn = dsn + "?sslmode=disable" // disable SSL
 
 	db, err := sqlx.ConnectContext(ctx, _driverName, "postgres://"+dsn)
 	if err != nil {
