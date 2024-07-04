@@ -66,8 +66,7 @@ func (app *application) handleFindUsers(w http.ResponseWriter, r *http.Request) 
 
 	handlerLogger.Debug("read params and body", "filter", filter, "opts", opts)
 
-	dao := database.NewUserDAO(baseLogger, app.db)
-	users, err := dao.Find(ctx, filter, opts)
+	users, err := findUsers(ctx, app.db, baseLogger, filter, opts)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
@@ -78,6 +77,20 @@ func (app *application) handleFindUsers(w http.ResponseWriter, r *http.Request) 
 	if err := response.JSON(w, http.StatusOK, responseFindUsers{Users: users}); err != nil {
 		app.serverError(w, r, err)
 	}
+}
+
+func findUsers(
+	ctx context.Context, db *database.DB, logger *slog.Logger,
+	filter database.FindUserFilter, opts database.FindOptions,
+) ([]model.User, error) {
+	dao := database.NewUserDAO(logger, db)
+
+	users, err := dao.Find(ctx, filter, opts)
+	if err != nil {
+		return []model.User{}, err
+	}
+
+	return users, nil
 }
 
 type responseFindUsers struct {
