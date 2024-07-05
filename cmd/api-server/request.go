@@ -11,7 +11,7 @@ import (
 	"github.com/protomem/time-tracker/internal/model"
 )
 
-const _customTimeLayout = "01-02-2006 15:04 MST"
+const _customTimeLayout = "2006-02-01 15:04 MST"
 
 const (
 	_defaultPage     = 1
