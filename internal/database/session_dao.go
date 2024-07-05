@@ -30,7 +30,8 @@ func (dao *SessionDAO) FindByUser(ctx context.Context, user model.ID, opts Sessi
 	stmt := dao.Builder.
 		Select("*").
 		From("sessions").
-		Where(squirrel.Eq{"user_id": user})
+		Where(squirrel.Eq{"user_id": user}).
+		OrderBy("sess_begin DESC")
 
 	if opts.After != nil {
 		stmt = stmt.Where(squirrel.Or{

@@ -145,10 +145,10 @@ func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 
 	people, err := fetchPeople(ctx, baseLogger, app.config.peopleServ.serverURL, passportSerie, passportNumber)
 	if err != nil {
-    if errors.Is(err, model.ErrNotFound) {
-      app.errorMessage(w, r, http.StatusNotFound, err.Error(), nil)
-      return
-    }
+		if errors.Is(err, model.ErrNotFound) {
+			app.errorMessage(w, r, http.StatusNotFound, err.Error(), nil)
+			return
+		}
 
 		app.serverError(w, r, err)
 		return
@@ -220,7 +220,7 @@ func fetchPeople(
 		logger.Debug("fetch people", "people", infoPeopleReq)
 		return infoPeopleReq, nil
 	default:
-    logger.Warn("unknown people response", "people", fmt.Sprintf("%T", infoPeopleReq))
+		logger.Warn("unknown people response", "people", fmt.Sprintf("%T", infoPeopleReq))
 		return nil, model.NewError("user", model.ErrNotFound)
 	}
 }
@@ -754,7 +754,7 @@ func mapSessionsToUserFormatStats(sessions []model.Session, opts database.Sessio
 	})
 
 	slices.SortFunc(stats, func(a, b userStat) int {
-		return cmp.Compare(a.Time, b.Time)
+		return cmp.Compare(b.Time, a.Time)
 	})
 
 	return lo.Map(stats, func(session userStat, _ int) userFormatStat {
