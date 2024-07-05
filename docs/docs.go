@@ -475,12 +475,14 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "example": "2024-06-05 08:00",
                         "description": "Start date",
                         "name": "after",
                         "in": "query"
                     },
                     {
                         "type": "string",
+                        "example": "2024-06-20 08:00",
                         "description": "End date",
                         "name": "before",
                         "in": "query"

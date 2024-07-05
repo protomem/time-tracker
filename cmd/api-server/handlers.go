@@ -645,8 +645,8 @@ func updateSessionEnd(
 //	@Tags			users
 //	@Produce		json
 //	@Param			userId	path		int		true	"User ID"
-//	@Param			after	query		string	false	"Start date"
-//	@Param			before	query		string	false	"End date"
+//	@Param			after	query		string	false	"Start date"	example(2024-06-05 08:00)
+//	@Param			before	query		string	false	"End date"		example(2024-06-20 08:00)
 //	@Success		200		{array}		main.userFormatStat
 //	@Failure		400		{object}	any	"Bad request input"
 //	@Failure		404		{object}	any	"User not found"
