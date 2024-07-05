@@ -11,7 +11,7 @@ import (
 	"github.com/protomem/time-tracker/internal/model"
 )
 
-const _customTimeLayout = "2006-02-01 15:04 MST"
+const _customTimeLayout = "2006-01-02 15:04" // <year>-<month>-<day> <hour>:<minute>
 
 const (
 	_defaultPage     = 1
@@ -64,11 +64,6 @@ func sessionTimelineOptionsFromRequest(r *http.Request) (database.SessionTimelin
 		return database.SessionTimelineOptions{}, err
 	}
 	if ok {
-		now := time.Now()
-		if now.Before(before) {
-			before = now
-		}
-
 		opts.Before = &before
 	}
 

@@ -693,19 +693,19 @@ func (app *application) handleUserStats(w http.ResponseWriter, r *http.Request) 
 }
 
 type userStat struct {
-	Task model.ID      `json:"task"`
-	Time time.Duration `json:"time"`
+	Task       model.ID
+	AmountTime time.Duration
 }
 
 type userFormatStat struct {
-	Task model.ID `json:"task"`
-	Time string   `json:"time"`
+	Task       model.ID `json:"task"`
+	AmountTime string   `json:"amountTime"`
 }
 
 func newUserFormatStat(s userStat) userFormatStat {
 	return userFormatStat{
-		Task: s.Task,
-		Time: s.Time.String(), // TODO: Pretty format
+		Task:       s.Task,
+		AmountTime: s.AmountTime.String(), // TODO: Pretty format
 	}
 }
 
@@ -748,13 +748,13 @@ func mapSessionsToUserFormatStats(sessions []model.Session, opts database.Sessio
 
 	stats := lo.MapToSlice(grouped, func(task model.ID, sessions []model.Session) userStat {
 		return userStat{
-			Task: task,
-			Time: calcSumSessions(sessions, opts),
+			Task:       task,
+			AmountTime: calcSumSessions(sessions, opts),
 		}
 	})
 
 	slices.SortFunc(stats, func(a, b userStat) int {
-		return cmp.Compare(b.Time, a.Time)
+		return cmp.Compare(b.AmountTime, a.AmountTime)
 	})
 
 	return lo.Map(stats, func(session userStat, _ int) userFormatStat {
@@ -764,7 +764,7 @@ func mapSessionsToUserFormatStats(sessions []model.Session, opts database.Sessio
 
 func calcSumSessions(sessions []model.Session, opts database.SessionTimelineOptions) time.Duration {
 	return lo.SumBy(sessions, func(session model.Session) time.Duration {
-		if opts.After != nil && session.Begin.After(*opts.After) {
+		if opts.After != nil && session.Begin.Before(*opts.After) {
 			session.Begin = *opts.After
 		}
 
