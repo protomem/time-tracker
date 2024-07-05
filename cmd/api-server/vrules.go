@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/protomem/time-tracker/internal/database"
 	"github.com/protomem/time-tracker/internal/validator"
 )
@@ -65,17 +63,17 @@ func validateUserPatronymic(v *validator.Validator, userPatronymic string) {
 
 func validatePassportSerie(v *validator.Validator, passportSerie int) {
 	v.CheckField(
-		validator.DigitsInNumber(passportSerie, 4),
+		passportSerie >= 0,
 		"passportSerie",
-		fmt.Sprintf("is not valid, must be 4 digits, got %d", passportSerie),
+		"must not negative number",
 	)
 }
 
 func validatePassportNumber(v *validator.Validator, passportNumber int) {
 	v.CheckField(
-		validator.DigitsInNumber(passportNumber, 6),
+		passportNumber >= 0,
 		"passportNumber",
-		fmt.Sprintf("is not valid, must be 6 digits, got %d", passportNumber),
+		"must not negative number",
 	)
 }
 
