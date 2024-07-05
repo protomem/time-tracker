@@ -23,7 +23,10 @@ app.get("/info", (req, res) => {
 
     if (!people) throw new Error("Person not found");
 
-    return res.status(200).json(people);
+    const result = { ...people };
+    delete result.passport;
+
+    return res.status(200).json(result);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
