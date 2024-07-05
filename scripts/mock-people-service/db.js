@@ -98,7 +98,7 @@ const peopleData = [
     name: "Дмитрий",
     surname: "Орлов",
     address: "г. Новосибирск, ул. Советская, д. 15",
-    passport: "3456 789012",
+    passport: "5678 789012",
   },
 ];
 

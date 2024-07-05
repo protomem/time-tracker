@@ -145,6 +145,11 @@ func (app *application) handleAddUser(w http.ResponseWriter, r *http.Request) {
 
 	people, err := fetchPeople(ctx, baseLogger, app.config.peopleServ.serverURL, passportSerie, passportNumber)
 	if err != nil {
+    if errors.Is(err, model.ErrNotFound) {
+      app.errorMessage(w, r, http.StatusNotFound, err.Error(), nil)
+      return
+    }
+
 		app.serverError(w, r, err)
 		return
 	}
@@ -210,14 +215,14 @@ func fetchPeople(
 		return nil, err
 	}
 
-	people, ok := infoPeopleReq.(*people_service.People)
-	if !ok {
-		return nil, fmt.Errorf("invalid response from people service: %T", infoPeopleReq)
+	switch infoPeopleReq := infoPeopleReq.(type) {
+	case (*people_service.People):
+		logger.Debug("fetch people", "people", infoPeopleReq)
+		return infoPeopleReq, nil
+	default:
+    logger.Warn("unknown people response", "people", fmt.Sprintf("%T", infoPeopleReq))
+		return nil, model.NewError("user", model.ErrNotFound)
 	}
-
-	logger.Debug("fetch people", "people", people)
-
-	return people, nil
 }
 
 func insertUser(
