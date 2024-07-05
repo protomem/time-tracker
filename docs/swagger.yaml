@@ -21,10 +21,10 @@ definitions:
     type: object
   main.userFormatStat:
     properties:
+      amountTime:
+        type: string
       task:
         type: integer
-      time:
-        type: string
     type: object
   model.Session:
     properties:

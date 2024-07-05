@@ -553,11 +553,11 @@ const docTemplate = `{
         "main.userFormatStat": {
             "type": "object",
             "properties": {
+                "amountTime": {
+                    "type": "string"
+                },
                 "task": {
                     "type": "integer"
-                },
-                "time": {
-                    "type": "string"
                 }
             }
         },
